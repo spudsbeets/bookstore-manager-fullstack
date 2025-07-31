@@ -1,0 +1,300 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+   Form,
+   FormControl,
+   FormDescription,
+   FormField,
+   FormItem,
+   FormLabel,
+   FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+   Card,
+   CardContent,
+   CardDescription,
+   CardHeader,
+   CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+
+const authorSchema = z.object({
+   authorID: z.number().optional(),
+   firstName: z.string().min(1, "First name is required"),
+   middleName: z.string().optional(),
+   lastName: z.string().optional(),
+   fullName: z.string().optional(),
+});
+
+type AuthorFormValues = z.infer<typeof authorSchema>;
+
+interface AuthorsFormProps {
+   mode: "create" | "edit" | "view";
+   initialData?: AuthorFormValues;
+   onSave?: (data: AuthorFormValues) => void;
+   onDelete?: () => void;
+}
+
+export function AuthorsForm({
+   mode,
+   initialData,
+   onSave,
+   onDelete,
+}: AuthorsFormProps) {
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   const [showSuccess, setShowSuccess] = useState(false);
+   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+   const [isDeleting, setIsDeleting] = useState(false);
+
+   const form = useForm<AuthorFormValues>({
+      resolver: zodResolver(authorSchema),
+      defaultValues: initialData || {
+         firstName: "",
+         middleName: "",
+         lastName: "",
+         fullName: "",
+      },
+   });
+
+   const isCreateMode = mode === "create";
+   const isEditMode = mode === "edit";
+   const isViewMode = mode === "view";
+
+   async function onSubmit(data: AuthorFormValues) {
+      setIsSubmitting(true);
+      try {
+         // Simulate API call
+         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (onSave) {
+            onSave(data);
+         }
+         setShowSuccess(true);
+         setTimeout(() => setShowSuccess(false), 3000);
+      } catch (error) {
+         console.error("Error saving author:", error);
+      } finally {
+         setIsSubmitting(false);
+      }
+   }
+
+   async function handleDelete() {
+      setIsDeleting(true);
+      try {
+         // Simulate API call
+         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (onDelete) {
+            onDelete();
+         }
+      } catch (error) {
+         console.error("Error deleting author:", error);
+      } finally {
+         setIsDeleting(false);
+         setShowDeleteDialog(false);
+      }
+   }
+
+   const getTitle = () => {
+      switch (mode) {
+         case "create":
+            return "Add New Author";
+         case "edit":
+            return "Edit Author";
+         case "view":
+            return "View Author";
+         default:
+            return "Author";
+      }
+   };
+
+   const getDescription = () => {
+      switch (mode) {
+         case "create":
+            return "Add a new author to your bookstore database";
+         case "edit":
+            return "Update author information";
+         case "view":
+            return "View author details";
+         default:
+            return "";
+      }
+   };
+
+   return (
+      <Card>
+         <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+               {mode === "create" && <CheckCircle className="h-5 w-5" />}
+               {mode === "edit" && <Edit className="h-5 w-5" />}
+               {mode === "view" && <Eye className="h-5 w-5" />}
+               {getTitle()}
+            </CardTitle>
+            <CardDescription>{getDescription()}</CardDescription>
+         </CardHeader>
+         <CardContent>
+            {showSuccess && (
+               <Alert className="mb-4">
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                     Author {isCreateMode ? "created" : "updated"} successfully!
+                  </AlertDescription>
+               </Alert>
+            )}
+
+            <Form {...form}>
+               <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+               >
+                  {/* Author ID (read-only for edit/view) */}
+                  {!isCreateMode && initialData?.authorID && (
+                     <FormField
+                        control={form.control}
+                        name="authorID"
+                        render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Author ID</FormLabel>
+                              <FormControl>
+                                 <Input
+                                    {...field}
+                                    value={field.value || ""}
+                                    disabled
+                                    className="bg-muted"
+                                 />
+                              </FormControl>
+                              <FormDescription>
+                                 Unique identifier for this author
+                              </FormDescription>
+                           </FormItem>
+                        )}
+                     />
+                  )}
+
+                  {/* Name Fields */}
+                  <div className="grid grid-cols-3 gap-4">
+                     <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>First Name</FormLabel>
+                              <FormControl>
+                                 <Input
+                                    placeholder="Enter first name"
+                                    {...field}
+                                    disabled={isViewMode}
+                                 />
+                              </FormControl>
+                              <FormMessage />
+                           </FormItem>
+                        )}
+                     />
+
+                     <FormField
+                        control={form.control}
+                        name="middleName"
+                        render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Middle Name</FormLabel>
+                              <FormControl>
+                                 <Input
+                                    placeholder="Enter middle name (optional)"
+                                    {...field}
+                                    disabled={isViewMode}
+                                 />
+                              </FormControl>
+                              <FormDescription>
+                                 Author's middle name (optional)
+                              </FormDescription>
+                              <FormMessage />
+                           </FormItem>
+                        )}
+                     />
+
+                     <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Last Name</FormLabel>
+                              <FormControl>
+                                 <Input
+                                    placeholder="Enter last name"
+                                    {...field}
+                                    disabled={isViewMode}
+                                 />
+                              </FormControl>
+                              <FormMessage />
+                           </FormItem>
+                        )}
+                     />
+                  </div>
+
+                  {/* Full Name */}
+                  <FormField
+                     control={form.control}
+                     name="fullName"
+                     render={({ field }) => (
+                        <FormItem>
+                           <FormLabel>Full Name</FormLabel>
+                           <FormControl>
+                              <Input
+                                 placeholder="Enter full name"
+                                 {...field}
+                                 disabled={isViewMode}
+                              />
+                           </FormControl>
+                           <FormDescription>
+                              Author's complete name as it appears on books
+                           </FormDescription>
+                           <FormMessage />
+                        </FormItem>
+                     )}
+                  />
+
+                  {/* Action Buttons */}
+                  {!isViewMode && (
+                     <div className="flex justify-between">
+                        <Button type="submit" disabled={isSubmitting}>
+                           {isSubmitting
+                              ? "Saving..."
+                              : isCreateMode
+                              ? "Create Author"
+                              : "Update Author"}
+                        </Button>
+                        {isEditMode && (
+                           <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={() => setShowDeleteDialog(true)}
+                              className="flex items-center gap-2"
+                           >
+                              <Trash2 className="h-4 w-4" />
+                              Delete Author
+                           </Button>
+                        )}
+                     </div>
+                  )}
+               </form>
+            </Form>
+         </CardContent>
+
+         {/* Delete Confirmation Dialog */}
+         <DeleteConfirmationDialog
+            isOpen={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onConfirm={handleDelete}
+            isDeleting={isDeleting}
+            itemName={initialData?.fullName || ""}
+            itemType="author"
+         />
+      </Card>
+   );
+}

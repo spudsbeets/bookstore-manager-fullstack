@@ -1,0 +1,9 @@
+<svg width="64" height="64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <rect width="200" height="200" rx="40" fill="#0A0A0A"/>
+  <path d="M40 50 C65 30, 135 30, 160 50 L160 140 C135 120, 65 120, 40 140 Z"
+        fill="#1E90FF" stroke="#ffffff10" stroke-width="2"/>
+  <text x="100" y="94" font-family="Inter, sans-serif" font-weight="600" font-size="40" fill="white"
+        text-anchor="middle" dominant-baseline="middle" letter-spacing="2">
+    S&amp;S
+  </text>
+</svg>
