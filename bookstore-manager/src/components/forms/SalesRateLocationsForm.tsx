@@ -25,6 +25,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import SalesRateLocationsService from "@/services/SalesRateLocationsService";
 
 const salesRateLocationSchema = z.object({
    salesRateID: z.number().optional(),
@@ -69,8 +70,17 @@ export function SalesRateLocationsForm({
    async function onSubmit(data: SalesRateLocationFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new sales rate location
+            await SalesRateLocationsService.create(data);
+         } else if (isEditMode && initialData?.salesRateID) {
+            // Update existing sales rate location
+            await SalesRateLocationsService.update(
+               initialData.salesRateID,
+               data
+            );
+         }
+
          if (onSave) {
             onSave(data);
          }
@@ -78,6 +88,7 @@ export function SalesRateLocationsForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving sales rate location:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -86,13 +97,15 @@ export function SalesRateLocationsForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.salesRateID) {
+            await SalesRateLocationsService.remove(initialData.salesRateID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting sales rate location:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -224,15 +237,24 @@ export function SalesRateLocationsForm({
                            <FormLabel>Tax Rate (%)</FormLabel>
                            <FormControl>
                               <Input
-                                 type="number"
-                                 step="0.01"
+                                 type="text"
+                                 inputMode="decimal"
                                  placeholder="0.00"
-                                 {...field}
-                                 onChange={(e) =>
-                                    field.onChange(
-                                       parseFloat(e.target.value) || 0
-                                    )
-                                 }
+                                 value={field.value || ""}
+                                 onChange={(e) => {
+                                    const value = e.target.value;
+                                    // Only allow numbers and one decimal point
+                                    if (
+                                       value === "" ||
+                                       /^\d*\.?\d*$/.test(value)
+                                    ) {
+                                       field.onChange(
+                                          value === ""
+                                             ? 0
+                                             : parseFloat(value) || 0
+                                       );
+                                    }
+                                 }}
                                  disabled={isViewMode}
                               />
                            </FormControl>

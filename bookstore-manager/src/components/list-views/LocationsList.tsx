@@ -18,25 +18,14 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Eye, Edit, Trash2 } from "lucide-react";
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import LocationsService from "@/services/LocationsService";
 
 interface Location {
    slocID: number;
    slocName: string;
 }
-
-const sampleLocations: Location[] = [
-   { slocID: 1, slocName: "Orchard" },
-   { slocID: 2, slocName: "Sunwillow" },
-];
 
 interface LocationsListProps {
    onView?: (location: Location) => void;
@@ -63,9 +52,8 @@ export function LocationsList({
       const fetchLocations = async () => {
          setIsLoading(true);
          try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setLocations(sampleLocations);
+            const response = await LocationsService.getAll();
+            setLocations(response.data);
          } catch (error) {
             console.error("Error fetching locations:", error);
          } finally {
@@ -74,7 +62,7 @@ export function LocationsList({
       };
 
       fetchLocations();
-   }, []);
+   }, []); // This will re-run when the component is re-mounted due to key change
 
    const filteredLocations = locations.filter(
       (location) =>
@@ -85,8 +73,7 @@ export function LocationsList({
    const handleDelete = async (location: Location) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await LocationsService.remove(location.slocID);
          setLocations(locations.filter((l) => l.slocID !== location.slocID));
          if (onDelete) {
             onDelete(location);
@@ -178,46 +165,38 @@ export function LocationsList({
                                  {location.slocName}
                               </TableCell>
                               <TableCell className="text-right">
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
+                                 <div className="flex items-center justify-end gap-2">
+                                    {onView && (
                                        <Button
                                           variant="ghost"
+                                          size="sm"
+                                          onClick={() => onView(location)}
                                           className="h-8 w-8 p-0"
                                        >
-                                          <span className="sr-only">
-                                             Open menu
-                                          </span>
+                                          <Eye className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    {onEdit && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onEdit(location)}
+                                          className="h-8 w-8 p-0"
+                                       >
                                           <Edit className="h-4 w-4" />
                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                       {onView && (
-                                          <DropdownMenuItem
-                                             onClick={() => onView(location)}
-                                          >
-                                             <Eye className="mr-2 h-4 w-4" />
-                                             View
-                                          </DropdownMenuItem>
-                                       )}
-                                       {onEdit && (
-                                          <DropdownMenuItem
-                                             onClick={() => onEdit(location)}
-                                          >
-                                             <Edit className="mr-2 h-4 w-4" />
-                                             Edit
-                                          </DropdownMenuItem>
-                                       )}
-                                       <DropdownMenuItem
-                                          onClick={() =>
-                                             setLocationToDelete(location)
-                                          }
-                                          className="text-destructive"
-                                       >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Delete
-                                       </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                 </DropdownMenu>
+                                    )}
+                                    <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() =>
+                                          setLocationToDelete(location)
+                                       }
+                                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    >
+                                       <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                 </div>
                               </TableCell>
                            </TableRow>
                         ))

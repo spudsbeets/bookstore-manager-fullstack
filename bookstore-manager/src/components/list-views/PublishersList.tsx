@@ -18,36 +18,14 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge"; // Commented out unused import
-import {
-   Plus,
-   Search,
-   Edit,
-   Eye,
-   Trash2,
-   Building2,
-   MoreHorizontal,
-} from "lucide-react";
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Edit, Eye, Trash2, Building2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import PublishersService from "@/services/PublishersService";
 
 interface Publisher {
    publisherID: number;
    publisherName: string;
 }
-
-// Sample data - replace with actual API calls
-const samplePublishers: Publisher[] = [
-   { publisherID: 1, publisherName: "Vintage International" },
-   { publisherID: 2, publisherName: "Penguin Books" },
-   { publisherID: 3, publisherName: "Viking Press" },
-   { publisherID: 4, publisherName: "William Morrow" },
-];
 
 interface PublishersListProps {
    onView?: (publisher: Publisher) => void;
@@ -71,13 +49,11 @@ export function PublishersList({
    const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
-      // Simulate API call
       const fetchPublishers = async () => {
          setIsLoading(true);
          try {
-            // Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setPublishers(samplePublishers);
+            const response = await PublishersService.getAll();
+            setPublishers(response.data);
          } catch (error) {
             console.error("Error fetching publishers:", error);
          } finally {
@@ -95,8 +71,7 @@ export function PublishersList({
    const handleDelete = async (publisher: Publisher) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await PublishersService.remove(publisher.publisherID);
          setPublishers(
             publishers.filter((p) => p.publisherID !== publisher.publisherID)
          );
@@ -188,40 +163,38 @@ export function PublishersList({
                               </TableCell>
                               <TableCell>{publisher.publisherName}</TableCell>
                               <TableCell className="text-right">
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                       <Button variant="ghost" size="sm">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                       </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                       {onView && (
-                                          <DropdownMenuItem
-                                             onClick={() => onView(publisher)}
-                                          >
-                                             <Eye className="mr-2 h-4 w-4" />
-                                             View
-                                          </DropdownMenuItem>
-                                       )}
-                                       {onEdit && (
-                                          <DropdownMenuItem
-                                             onClick={() => onEdit(publisher)}
-                                          >
-                                             <Edit className="mr-2 h-4 w-4" />
-                                             Edit
-                                          </DropdownMenuItem>
-                                       )}
-                                       <DropdownMenuItem
-                                          onClick={() =>
-                                             setPublisherToDelete(publisher)
-                                          }
-                                          className="text-destructive"
+                                 <div className="flex items-center justify-end gap-2">
+                                    {onView && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onView(publisher)}
+                                          className="h-8 w-8 p-0"
                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Delete
-                                       </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                 </DropdownMenu>
+                                          <Eye className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    {onEdit && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onEdit(publisher)}
+                                          className="h-8 w-8 p-0"
+                                       >
+                                          <Edit className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() =>
+                                          setPublisherToDelete(publisher)
+                                       }
+                                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    >
+                                       <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                 </div>
                               </TableCell>
                            </TableRow>
                         ))

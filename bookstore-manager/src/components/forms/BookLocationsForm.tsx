@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
 import {
    Form,
@@ -25,66 +26,23 @@ import {
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { MapPin, Package } from "lucide-react";
 
-// Sample data - define locally since they're not exported
+import BooksService, { type Book } from "@/services/BooksService";
+
+// Dummy fallback — replace with actual data from LocationsService
 const sampleBooks = [
-   {
-      bookID: 1,
-      title: "Inherent Vice",
-      publicationDate: "2009-08-04",
-      "isbn-10": "0143126850",
-      "isbn-13": "9780143126850",
-      inStock: true,
-      price: 15.99,
-      inventoryQty: 5,
-      publisherID: 2,
-      publisherName: "Penguin Books",
-   },
-   {
-      bookID: 2,
-      title: "Beloved",
-      publicationDate: "1987-09-01",
-      "isbn-10": "1400033416",
-      "isbn-13": "9781400033416",
-      inStock: true,
-      price: 17.99,
-      inventoryQty: 7,
-      publisherID: 1,
-      publisherName: "Vintage International",
-   },
-   {
-      bookID: 3,
-      title: "The Talisman",
-      publicationDate: "1984-11-08",
-      "isbn-10": "0670691992",
-      "isbn-13": "9780670691999",
-      inStock: true,
-      price: 18.99,
-      inventoryQty: 6,
-      publisherID: 3,
-      publisherName: "Viking Press",
-   },
-   {
-      bookID: 4,
-      title: "Good Omens",
-      publicationDate: "2006-11-28",
-      "isbn-10": "0060853980",
-      "isbn-13": "9780060853983",
-      inStock: true,
-      price: 16.99,
-      inventoryQty: 8,
-      publisherID: 4,
-      publisherName: "William Morrow",
-   },
+   { bookID: 1, title: "1984", "isbn-10": "1234567890" },
+   { bookID: 2, title: "Brave New World", "isbn-10": "0987654321" },
 ];
 
 const sampleLocations = [
-   { slocID: 1, slocName: "Orchard" },
-   { slocID: 2, slocName: "Sunwillow" },
+   { slocID: 1, slocName: "Main Warehouse" },
+   { slocID: 2, slocName: "Annex" },
 ];
 
+// Use slocID instead of locationID to match the form field
 const bookLocationSchema = z.object({
-   bookID: z.number(),
-   slocID: z.number(),
+   bookID: z.number().min(1, "Book ID is required"),
+   slocID: z.number().min(1, "Location is required"),
    quantity: z.number().min(0, "Quantity must be at least 0"),
 });
 
@@ -107,6 +65,26 @@ export function BookLocationsForm({
 }: BookLocationsFormProps) {
    const [isDeleting, setIsDeleting] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+   const [book, setBook] = useState<any>(null);
+
+   useEffect(() => {
+      const fetchData = async () => {
+         setLoading(true);
+         try {
+            const bookResult = await BooksService.get(bookID);
+            setBook(bookResult);
+            setError(null);
+         } catch (err) {
+            setError("Failed to fetch book details.");
+         } finally {
+            setLoading(false);
+         }
+      };
+
+      fetchData();
+   }, [bookID]);
 
    const form = useForm<BookLocationFormData>({
       resolver: zodResolver(bookLocationSchema),
@@ -134,13 +112,9 @@ export function BookLocationsForm({
       }
    };
 
-   // Get the current book and location details for display
-   const currentBook = sampleBooks.find((book: any) => book.bookID === bookID);
-   // const currentLocation = sampleLocations.find(
-   //    (loc: any) => loc.slocID === form.watch("slocID")
-   // ); // Commented out unused variable
+   const currentBook = sampleBooks.find((book) => book.bookID === bookID);
    const selectedLocation = initialData
-      ? sampleLocations.find((loc: any) => loc.slocID === initialData.slocID)
+      ? sampleLocations.find((loc) => loc.slocID === initialData.slocID)
       : null;
 
    return (
@@ -167,7 +141,6 @@ export function BookLocationsForm({
                      onSubmit={form.handleSubmit(onSubmit)}
                      className="space-y-6"
                   >
-                     {/* Book Information (Read-only) */}
                      <div className="space-y-2">
                         <Label>Book</Label>
                         <div className="p-3 bg-muted rounded-md">
@@ -180,7 +153,6 @@ export function BookLocationsForm({
                         </div>
                      </div>
 
-                     {/* Location Selection (Create mode only) */}
                      {mode === "create" && (
                         <FormField
                            control={form.control}
@@ -191,7 +163,7 @@ export function BookLocationsForm({
                                  <FormControl>
                                     <SearchableSelect
                                        options={sampleLocations.map(
-                                          (location: any) => ({
+                                          (location) => ({
                                              value: location.slocID.toString(),
                                              label: location.slocName,
                                           })
@@ -211,7 +183,6 @@ export function BookLocationsForm({
                         />
                      )}
 
-                     {/* Current Location (Edit/View mode) */}
                      {(mode === "edit" || mode === "view") &&
                         selectedLocation && (
                            <div className="space-y-2">
@@ -227,7 +198,6 @@ export function BookLocationsForm({
                            </div>
                         )}
 
-                     {/* Quantity Field */}
                      <FormField
                         control={form.control}
                         name="quantity"
@@ -239,14 +209,22 @@ export function BookLocationsForm({
                               </FormLabel>
                               <FormControl>
                                  <Input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     placeholder="Enter quantity"
-                                    {...field}
-                                    onChange={(e) =>
-                                       field.onChange(Number(e.target.value))
-                                    }
+                                    value={field.value || ""}
+                                    onChange={(e) => {
+                                       const value = e.target.value;
+                                       if (
+                                          value === "" ||
+                                          /^\d+$/.test(value)
+                                       ) {
+                                          field.onChange(
+                                             value === "" ? 0 : Number(value)
+                                          );
+                                       }
+                                    }}
                                     disabled={mode === "view"}
-                                    min="0"
                                  />
                               </FormControl>
                               <FormDescription>
@@ -257,7 +235,6 @@ export function BookLocationsForm({
                         )}
                      />
 
-                     {/* Action Buttons */}
                      <div className="flex gap-2 pt-4">
                         <Button type="submit" disabled={mode === "view"}>
                            {mode === "create" && "Add Location"}

@@ -17,77 +17,62 @@ interface Location {
 }
 
 export function LocationsPage() {
-   const [selectViewOption, setSelectViewOption] = useState("List Locations");
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
    const [selectedLocation, setSelectedLocation] = useState<Location | null>(
       null
    );
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for forcing re-render
 
-   const viewArray = [
-      "List Locations",
-      "Create Location",
-      "Edit Location",
-      "View Location",
-   ];
+   // View labels mapping
+   const viewLabels = {
+      list: "List Locations",
+      create: "Create Location",
+      edit: "Edit Location",
+      view: "View Location",
+   };
 
-   const handleViewChange = (value: string) => {
-      setSelectViewOption(value);
-      switch (value) {
-         case "List Locations":
-            setCurrentView("list");
-            break;
-         case "Create Location":
-            setCurrentView("create");
-            break;
-         case "Edit Location":
-            if (selectedLocation) {
-               setCurrentView("edit");
-            } else {
-               setSelectViewOption("List Locations");
-               setCurrentView("list");
-            }
-            break;
-         case "View Location":
-            if (selectedLocation) {
-               setCurrentView("view");
-            } else {
-               setSelectViewOption("List Locations");
-               setCurrentView("list");
-            }
-            break;
+   const handleViewChange = (label: string) => {
+      // Find the key ('list', 'create', etc.) from the label
+      const viewKey = Object.keys(viewLabels).find(
+         (key) => viewLabels[key as keyof typeof viewLabels] === label
+      ) as "list" | "create" | "edit" | "view";
+
+      if (viewKey === "edit" || viewKey === "view") {
+         if (selectedLocation) {
+            setCurrentView(viewKey);
+         }
+      } else {
+         setCurrentView(viewKey);
       }
    };
 
    const handleCreate = () => {
       setSelectedLocation(null);
       setCurrentView("create");
-      setSelectViewOption("Create Location");
    };
 
    const handleEdit = (location: Location) => {
       setSelectedLocation(location);
       setCurrentView("edit");
-      setSelectViewOption("Edit Location");
    };
 
    const handleView = (location: Location) => {
       setSelectedLocation(location);
       setCurrentView("view");
-      setSelectViewOption("View Location");
    };
 
    const handleDelete = () => {
       console.log("Delete location:", selectedLocation);
       setCurrentView("list");
-      setSelectViewOption("List Locations");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
 
    const handleSave = (data: any) => {
       console.log("Save location:", data);
       setCurrentView("list");
-      setSelectViewOption("List Locations");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
 
    // const handleBack = () => {
@@ -104,16 +89,24 @@ export function LocationsPage() {
                <div className="flex flex-col items-start gap-2">
                   <Label>View Options</Label>
                   <Select
-                     value={selectViewOption}
+                     value={viewLabels[currentView]}
                      onValueChange={handleViewChange}
                   >
                      <SelectTrigger className="w-[200px]">
-                        <SelectValue>{selectViewOption}</SelectValue>
+                        <SelectValue />
                      </SelectTrigger>
                      <SelectContent>
-                        {viewArray.map((view) => (
-                           <SelectItem key={view} value={view}>
-                              {view}
+                        {Object.values(viewLabels).map((label) => (
+                           <SelectItem
+                              key={label}
+                              value={label}
+                              disabled={
+                                 (label === "Edit Location" ||
+                                    label === "View Location") &&
+                                 !selectedLocation
+                              }
+                           >
+                              {label}
                            </SelectItem>
                         ))}
                      </SelectContent>
@@ -123,6 +116,7 @@ export function LocationsPage() {
 
             {currentView === "list" && (
                <LocationsList
+                  key={refreshKey}
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={handleDelete}

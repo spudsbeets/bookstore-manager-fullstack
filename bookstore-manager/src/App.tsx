@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
 import { HomePage } from "@/Pages/HomePage";
 import { PublishersPage } from "@/Pages/PublishersPage";
 import { BooksPage } from "@/Pages/BooksPage";
@@ -46,6 +47,7 @@ function App() {
                </Routes>
             </div>
          </Router>
+         <Toaster richColors />
       </ThemeProvider>
    );
 }

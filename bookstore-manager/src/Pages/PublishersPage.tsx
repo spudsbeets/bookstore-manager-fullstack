@@ -16,69 +16,53 @@ export function PublishersPage() {
       "list" | "create" | "edit" | "view"
    >("list");
    const [selectedPublisher, setSelectedPublisher] = useState<any>(null);
-   const [selectViewOption, setSelectViewOption] = useState("List Publishers");
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for forcing re-render
 
-   const viewArray = [
-      "List Publishers",
-      "Create Publisher",
-      "Edit Publisher",
-      "View Publisher",
-   ];
+   // View labels mapping
+   const viewLabels = {
+      list: "List Publishers",
+      create: "Create Publisher",
+      edit: "Edit Publisher",
+      view: "View Publisher",
+   };
 
    const handleCreate = () => {
       setCurrentView("create");
-      setSelectViewOption("Create Publisher");
    };
    const handleEdit = (publisher: any) => {
       setSelectedPublisher(publisher);
       setCurrentView("edit");
-      setSelectViewOption("Edit Publisher");
    };
    const handleView = (publisher: any) => {
       setSelectedPublisher(publisher);
       setCurrentView("view");
-      setSelectViewOption("View Publisher");
    };
    const handleDelete = () => {
       console.log("Delete publisher:", selectedPublisher);
       setCurrentView("list");
-      setSelectViewOption("List Publishers");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleSave = (data: any) => {
       console.log("Save publisher:", data);
       setCurrentView("list");
-      setSelectViewOption("List Publishers");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleBack = () => {
       setCurrentView("list");
-      setSelectViewOption("List Publishers");
    };
 
-   const handleViewChange = (value: string) => {
-      setSelectViewOption(value);
-      switch (value) {
-         case "List Publishers":
-            setCurrentView("list");
-            break;
-         case "Create Publisher":
-            setCurrentView("create");
-            break;
-         case "Edit Publisher":
-            if (selectedPublisher) {
-               setCurrentView("edit");
-            } else {
-               setSelectViewOption("List Publishers");
-            }
-            break;
-         case "View Publisher":
-            if (selectedPublisher) {
-               setCurrentView("view");
-            } else {
-               setSelectViewOption("List Publishers");
-            }
-            break;
-         default:
-            setCurrentView("list");
+   const handleViewChange = (label: string) => {
+      // Find the key ('list', 'create', etc.) from the label
+      const viewKey = Object.keys(viewLabels).find(
+         (key) => viewLabels[key as keyof typeof viewLabels] === label
+      ) as "list" | "create" | "edit" | "view";
+
+      if (viewKey === "edit" || viewKey === "view") {
+         if (selectedPublisher) {
+            setCurrentView(viewKey);
+         }
+      } else {
+         setCurrentView(viewKey);
       }
    };
 
@@ -92,16 +76,24 @@ export function PublishersPage() {
                <div className="flex flex-col items-start gap-2">
                   <Label>View Options</Label>
                   <Select
-                     value={selectViewOption}
+                     value={viewLabels[currentView]}
                      onValueChange={handleViewChange}
                   >
                      <SelectTrigger className="w-[200px]">
-                        <SelectValue>{selectViewOption}</SelectValue>
+                        <SelectValue />
                      </SelectTrigger>
                      <SelectContent>
-                        {viewArray.map((view) => (
-                           <SelectItem key={view} value={view}>
-                              {view}
+                        {Object.values(viewLabels).map((label) => (
+                           <SelectItem
+                              key={label}
+                              value={label}
+                              disabled={
+                                 (label === "Edit Publisher" ||
+                                    label === "View Publisher") &&
+                                 !selectedPublisher
+                              }
+                           >
+                              {label}
                            </SelectItem>
                         ))}
                      </SelectContent>
@@ -149,6 +141,7 @@ export function PublishersPage() {
 
             {currentView === "list" && (
                <PublishersList
+                  key={refreshKey}
                   onCreate={handleCreate}
                   onEdit={handleEdit}
                   onView={handleView}

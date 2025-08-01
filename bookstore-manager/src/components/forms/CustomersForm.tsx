@@ -25,17 +25,45 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import CustomersService from "@/services/CustomersService";
 
+// Enhanced schema with input sanitization
 const customerSchema = z.object({
    customerID: z.number().optional(),
-   firstName: z.string().min(1, "First name is required"),
-   lastName: z.string().min(1, "Last name is required"),
+   firstName: z
+      .string()
+      .min(1, "First name is required")
+      .max(50, "First name must be less than 50 characters")
+      .regex(
+         /^[a-zA-Z\s'-]+$/,
+         "First name can only contain letters, spaces, hyphens, and apostrophes"
+      )
+      .transform((val) => val.trim()),
+   lastName: z
+      .string()
+      .min(1, "Last name is required")
+      .max(50, "Last name must be less than 50 characters")
+      .regex(
+         /^[a-zA-Z\s'-]+$/,
+         "Last name can only contain letters, spaces, hyphens, and apostrophes"
+      )
+      .transform((val) => val.trim()),
    email: z
       .string()
       .email("Invalid email address")
+      .max(100, "Email must be less than 100 characters")
+      .transform((val) => val.trim().toLowerCase())
       .optional()
       .or(z.literal("")),
-   phoneNumber: z.string().optional(),
+   phoneNumber: z
+      .string()
+      .regex(
+         /^[\d\s\-\(\)\+]*$/,
+         "Phone number can only contain digits, spaces, hyphens, parentheses, and plus signs"
+      )
+      .max(20, "Phone number must be less than 20 characters")
+      .transform((val) => val.trim())
+      .optional(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -75,8 +103,14 @@ export function CustomersForm({
    async function onSubmit(data: CustomerFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new customer
+            await CustomersService.create(data);
+         } else if (isEditMode && initialData?.customerID) {
+            // Update existing customer
+            await CustomersService.update(initialData.customerID, data);
+         }
+
          if (onSave) {
             onSave(data);
          }
@@ -84,6 +118,7 @@ export function CustomersForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving customer:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -92,13 +127,15 @@ export function CustomersForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.customerID) {
+            await CustomersService.remove(initialData.customerID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting customer:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);

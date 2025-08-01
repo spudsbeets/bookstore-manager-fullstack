@@ -47,6 +47,7 @@ interface BookGenresListProps {
    onEdit?: (bookGenre: BookGenre) => void;
    onDelete?: (bookGenre: BookGenre) => void;
    onAdd?: () => void;
+   onCreateGenre?: () => void; // New prop for creating genres
 }
 
 export function BookGenresList({
@@ -55,6 +56,7 @@ export function BookGenresList({
    onEdit,
    onDelete,
    onAdd,
+   onCreateGenre,
 }: BookGenresListProps) {
    const [bookGenres, setBookGenres] = useState<BookGenre[]>([]);
    const [searchTerm, setSearchTerm] = useState("");
@@ -152,22 +154,41 @@ export function BookGenresList({
                         Genres for this book ({bookGenres.length} total)
                      </CardDescription>
                   </div>
-                  {onAdd && (
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button
-                              onClick={onAdd}
-                              className="flex items-center gap-2"
-                           >
-                              <Plus className="h-4 w-4" />
-                              Add Genre
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>Add a new genre to this book</p>
-                        </TooltipContent>
-                     </Tooltip>
-                  )}
+                  <div className="flex gap-2">
+                     {onAdd && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onAdd}
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Genre to Book
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Add an existing genre to this book</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                     {onCreateGenre && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onCreateGenre}
+                                 variant="outline"
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Genre
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Create a new genre record</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                  </div>
                </div>
             </CardHeader>
             <CardContent>

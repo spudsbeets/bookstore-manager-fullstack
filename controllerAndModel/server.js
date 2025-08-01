@@ -17,21 +17,6 @@ const PORT = 3001;
 // Database
 import db from "./database/db-connector.js";
 
-// Import models
-import {
-   AuthorsModel,
-   BooksModel,
-   PublishersModel,
-   CustomersModel,
-   GenresModel,
-   OrdersModel,
-   SalesRateLocationsModel,
-   LocationsModel,
-   BookAuthorsModel,
-   BookGenresModel,
-   OrderItemsModel,
-} from "./models/index.js";
-
 // Import routes
 import welcomeRouter from "./routes/welcome.routes.js";
 import booksRouter from "./routes/books.routes.js";

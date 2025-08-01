@@ -18,42 +18,15 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-   Plus,
-   Search,
-   Edit,
-   Eye,
-   Trash2,
-   MapPin,
-   MoreHorizontal,
-} from "lucide-react";
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Edit, Eye, Trash2, MapPin } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import SalesRateLocationsService from "@/services/SalesRateLocationsService";
 
 interface SalesRateLocation {
    salesRateID: number;
-   county: string;
-   state: string;
-   taxRate: number;
+   location: string;
+   taxRate: string;
 }
-
-// Sample data - replace with actual API calls
-const sampleSalesRateLocations: SalesRateLocation[] = [
-   { salesRateID: 1, county: "Polk", state: "Iowa", taxRate: 4.2 },
-   { salesRateID: 2, county: "Jerome", state: "Idaho", taxRate: 5.1 },
-   {
-      salesRateID: 3,
-      county: "San Francisco",
-      state: "California",
-      taxRate: 8.625,
-   },
-];
 
 interface SalesRateLocationsListProps {
    onView?: (salesRateLocation: SalesRateLocation) => void;
@@ -78,13 +51,11 @@ export function SalesRateLocationsList({
    const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
-      // Simulate API call
       const fetchSalesRateLocations = async () => {
          setIsLoading(true);
          try {
-            // Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setSalesRateLocations(sampleSalesRateLocations);
+            const response = await SalesRateLocationsService.getAll();
+            setSalesRateLocations(response.data);
          } catch (error) {
             console.error("Error fetching sales rate locations:", error);
          } finally {
@@ -93,24 +64,20 @@ export function SalesRateLocationsList({
       };
 
       fetchSalesRateLocations();
-   }, []);
+   }, []); // This will re-run when the component is re-mounted due to key change
 
    const filteredSalesRateLocations = salesRateLocations.filter(
       (salesRateLocation) =>
-         salesRateLocation.county
+         salesRateLocation.location
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-         salesRateLocation.state
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-         salesRateLocation.taxRate.toString().includes(searchTerm)
+         salesRateLocation.taxRate.includes(searchTerm)
    );
 
    const handleDelete = async (salesRateLocation: SalesRateLocation) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await SalesRateLocationsService.remove(salesRateLocation.salesRateID);
          setSalesRateLocations(
             salesRateLocations.filter(
                (s) => s.salesRateID !== salesRateLocation.salesRateID
@@ -185,8 +152,7 @@ export function SalesRateLocationsList({
                   <TableHeader>
                      <TableRow>
                         <TableHead>ID</TableHead>
-                        <TableHead>County</TableHead>
-                        <TableHead>State</TableHead>
+                        <TableHead>Location</TableHead>
                         <TableHead>Tax Rate</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                      </TableRow>
@@ -194,7 +160,7 @@ export function SalesRateLocationsList({
                   <TableBody>
                      {filteredSalesRateLocations.length === 0 ? (
                         <TableRow>
-                           <TableCell colSpan={5} className="text-center py-8">
+                           <TableCell colSpan={4} className="text-center py-8">
                               <div className="text-muted-foreground">
                                  No sales rate locations found.
                               </div>
@@ -208,13 +174,8 @@ export function SalesRateLocationsList({
                               </TableCell>
                               <TableCell>
                                  <div className="font-medium">
-                                    {salesRateLocation.county}
+                                    {salesRateLocation.location}
                                  </div>
-                              </TableCell>
-                              <TableCell>
-                                 <Badge variant="outline">
-                                    {salesRateLocation.state}
-                                 </Badge>
                               </TableCell>
                               <TableCell>
                                  <div className="font-medium">
@@ -222,46 +183,44 @@ export function SalesRateLocationsList({
                                  </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                       <Button variant="ghost" size="sm">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                       </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                       {onView && (
-                                          <DropdownMenuItem
-                                             onClick={() =>
-                                                onView(salesRateLocation)
-                                             }
-                                          >
-                                             <Eye className="mr-2 h-4 w-4" />
-                                             View
-                                          </DropdownMenuItem>
-                                       )}
-                                       {onEdit && (
-                                          <DropdownMenuItem
-                                             onClick={() =>
-                                                onEdit(salesRateLocation)
-                                             }
-                                          >
-                                             <Edit className="mr-2 h-4 w-4" />
-                                             Edit
-                                          </DropdownMenuItem>
-                                       )}
-                                       <DropdownMenuItem
+                                 <div className="flex items-center justify-end gap-2">
+                                    {onView && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
                                           onClick={() =>
-                                             setSalesRateLocationToDelete(
-                                                salesRateLocation
-                                             )
+                                             onView(salesRateLocation)
                                           }
-                                          className="text-destructive"
+                                          className="h-8 w-8 p-0"
                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Delete
-                                       </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                 </DropdownMenu>
+                                          <Eye className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    {onEdit && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                             onEdit(salesRateLocation)
+                                          }
+                                          className="h-8 w-8 p-0"
+                                       >
+                                          <Edit className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() =>
+                                          setSalesRateLocationToDelete(
+                                             salesRateLocation
+                                          )
+                                       }
+                                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    >
+                                       <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                 </div>
                               </TableCell>
                            </TableRow>
                         ))
@@ -280,10 +239,7 @@ export function SalesRateLocationsList({
                handleDelete(salesRateLocationToDelete)
             }
             isDeleting={isDeleting}
-            itemName={
-               `${salesRateLocationToDelete?.county}, ${salesRateLocationToDelete?.state}` ||
-               ""
-            }
+            itemName={salesRateLocationToDelete?.location || ""}
             itemType="sales rate location"
          />
       </Card>

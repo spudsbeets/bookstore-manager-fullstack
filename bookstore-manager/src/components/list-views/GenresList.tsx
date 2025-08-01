@@ -18,37 +18,14 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge"; // Commented out unused import
-import {
-   Plus,
-   Search,
-   Edit,
-   Eye,
-   Trash2,
-   Tags,
-   MoreHorizontal,
-} from "lucide-react";
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Edit, Eye, Trash2, Tags } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import GenresService from "@/services/GenresService";
 
 interface Genre {
    genreID: number;
    genreName: string;
 }
-
-// Sample data - replace with actual API calls
-const sampleGenres: Genre[] = [
-   { genreID: 1, genreName: "Postmodern Fiction" },
-   { genreID: 2, genreName: "Historical Fiction" },
-   { genreID: 3, genreName: "Horror Fiction" },
-   { genreID: 4, genreName: "Science Fiction" },
-   { genreID: 5, genreName: "Fantasy Fiction" },
-];
 
 interface GenresListProps {
    onView?: (genre: Genre) => void;
@@ -70,13 +47,11 @@ export function GenresList({
    const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
-      // Simulate API call
       const fetchGenres = async () => {
          setIsLoading(true);
          try {
-            // Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setGenres(sampleGenres);
+            const response = await GenresService.getAll();
+            setGenres(response.data);
          } catch (error) {
             console.error("Error fetching genres:", error);
          } finally {
@@ -85,7 +60,7 @@ export function GenresList({
       };
 
       fetchGenres();
-   }, []);
+   }, []); // This will re-run when the component is re-mounted due to key change
 
    const filteredGenres = genres.filter((genre) =>
       genre.genreName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -94,8 +69,7 @@ export function GenresList({
    const handleDelete = async (genre: Genre) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await GenresService.remove(genre.genreID);
          setGenres(genres.filter((g) => g.genreID !== genre.genreID));
          if (onDelete) {
             onDelete(genre);
@@ -188,40 +162,36 @@ export function GenresList({
                                  </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                       <Button variant="ghost" size="sm">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                       </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                       {onView && (
-                                          <DropdownMenuItem
-                                             onClick={() => onView(genre)}
-                                          >
-                                             <Eye className="mr-2 h-4 w-4" />
-                                             View
-                                          </DropdownMenuItem>
-                                       )}
-                                       {onEdit && (
-                                          <DropdownMenuItem
-                                             onClick={() => onEdit(genre)}
-                                          >
-                                             <Edit className="mr-2 h-4 w-4" />
-                                             Edit
-                                          </DropdownMenuItem>
-                                       )}
-                                       <DropdownMenuItem
-                                          onClick={() =>
-                                             setGenreToDelete(genre)
-                                          }
-                                          className="text-destructive"
+                                 <div className="flex items-center justify-end gap-2">
+                                    {onView && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onView(genre)}
+                                          className="h-8 w-8 p-0"
                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Delete
-                                       </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                 </DropdownMenu>
+                                          <Eye className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    {onEdit && (
+                                       <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => onEdit(genre)}
+                                          className="h-8 w-8 p-0"
+                                       >
+                                          <Edit className="h-4 w-4" />
+                                       </Button>
+                                    )}
+                                    <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => setGenreToDelete(genre)}
+                                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    >
+                                       <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                 </div>
                               </TableCell>
                            </TableRow>
                         ))

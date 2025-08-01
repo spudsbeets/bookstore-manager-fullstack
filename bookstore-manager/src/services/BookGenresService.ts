@@ -1,0 +1,49 @@
+import http from "./http-common";
+import { z } from "zod";
+import type { AxiosResponse } from "axios";
+
+// -----------------------------
+// ZOD SCHEMA & TYPES
+// -----------------------------
+
+export const BookGenreSchema = z.object({
+   bookGenreID: z.number(),
+   bookID: z.number(),
+   genreID: z.number(),
+});
+
+export type BookGenre = z.infer<typeof BookGenreSchema>;
+
+export type CreateBookGenreDTO = Omit<BookGenre, "bookGenreID">;
+export type UpdateBookGenreDTO = Partial<CreateBookGenreDTO>;
+
+// -----------------------------
+// SERVICE CLASS
+// -----------------------------
+
+class BookGenresService {
+   getAll(): Promise<AxiosResponse<BookGenre[]>> {
+      return http.get("/book-genres");
+   }
+
+   get(id: number): Promise<AxiosResponse<BookGenre>> {
+      return http.get(`/book-genres/${id}`);
+   }
+
+   create(data: CreateBookGenreDTO): Promise<AxiosResponse<BookGenre>> {
+      return http.post("/book-genres", data);
+   }
+
+   update(
+      id: number,
+      data: UpdateBookGenreDTO
+   ): Promise<AxiosResponse<BookGenre>> {
+      return http.put(`/book-genres/${id}`, data);
+   }
+
+   remove(id: number): Promise<AxiosResponse<void>> {
+      return http.delete(`/book-genres/${id}`);
+   }
+}
+
+export default new BookGenresService();

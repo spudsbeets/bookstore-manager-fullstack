@@ -18,6 +18,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Sample data for demonstration
 const sampleBooks = [
@@ -74,6 +75,7 @@ const sampleBookAuthors = [
 ];
 
 export function BookAuthorsPage() {
+   const navigate = useNavigate();
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
@@ -153,6 +155,11 @@ export function BookAuthorsPage() {
    const handleAddBookAuthor = () => {
       setCurrentView("create");
       setSelectViewOption("Create Book Author");
+   };
+
+   const handleCreateAuthor = () => {
+      // Navigate to Authors page to create a new author
+      navigate("/authors");
    };
 
    const handleEditBookAuthor = (bookAuthor: any) => {
@@ -332,6 +339,7 @@ export function BookAuthorsPage() {
                            onAdd={handleAddBookAuthor}
                            onEdit={handleEditBookAuthor}
                            onView={handleViewBookAuthor}
+                           onCreateAuthor={handleCreateAuthor}
                         />
                      </div>
                   </CardContent>

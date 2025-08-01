@@ -25,10 +25,16 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import PublishersService from "@/services/PublishersService";
 
+// Enhanced schema with input sanitization
 const publisherSchema = z.object({
    publisherID: z.number().optional(),
-   publisherName: z.string().min(1, "Publisher name is required"),
+   publisherName: z.string()
+      .min(1, "Publisher name is required")
+      .max(100, "Publisher name must be less than 100 characters")
+      .regex(/^[a-zA-Z0-9\s&.,'-]+$/, "Publisher name can only contain letters, numbers, spaces, and common punctuation")
+      .transform(val => val.trim()),
 });
 
 type PublisherFormValues = z.infer<typeof publisherSchema>;
@@ -65,8 +71,14 @@ export function PublishersForm({
    async function onSubmit(data: PublisherFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new publisher
+            await PublishersService.create(data);
+         } else if (isEditMode && initialData?.publisherID) {
+            // Update existing publisher
+            await PublishersService.update(initialData.publisherID, data);
+         }
+         
          if (onSave) {
             onSave(data);
          }
@@ -74,6 +86,7 @@ export function PublishersForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving publisher:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -82,13 +95,15 @@ export function PublishersForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.publisherID) {
+            await PublishersService.remove(initialData.publisherID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting publisher:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);

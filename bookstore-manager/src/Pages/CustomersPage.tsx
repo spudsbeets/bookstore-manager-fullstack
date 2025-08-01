@@ -29,6 +29,7 @@ export function CustomersPage() {
    const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
    const [selectViewOption, setSelectViewOption] = useState("List Customers");
    const [activeTab, setActiveTab] = useState("details");
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for forcing re-render
 
    // State for customer orders
    const [customerOrderView, setCustomerOrderView] = useState<
@@ -64,11 +65,13 @@ export function CustomersPage() {
       console.log("Delete customer:", selectedCustomer);
       setCurrentView("list");
       setSelectViewOption("List Customers");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleSave = (data: any) => {
       console.log("Save customer:", data);
       setCurrentView("list");
       setSelectViewOption("List Customers");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleBack = () => {
       setCurrentView("list");
@@ -285,6 +288,7 @@ export function CustomersPage() {
 
             {currentView === "list" && (
                <CustomersList
+                  key={refreshKey}
                   onCreate={handleCreate}
                   onEdit={handleEdit}
                   onView={handleView}

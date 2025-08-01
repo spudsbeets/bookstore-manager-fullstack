@@ -281,14 +281,17 @@ export function InventoryForm({
                                  <FormLabel>Quantity</FormLabel>
                                  <FormControl>
                                     <Input
-                                       type="number"
+                                       type="text"
+                                       inputMode="numeric"
                                        placeholder="1"
-                                       {...field}
-                                       onChange={(e) =>
-                                          field.onChange(
-                                             parseInt(e.target.value) || 0
-                                          )
-                                       }
+                                       value={field.value || ""}
+                                       onChange={(e) => {
+                                          const value = e.target.value;
+                                          // Only allow numbers
+                                          if (value === "" || /^\d+$/.test(value)) {
+                                             field.onChange(value === "" ? 0 : parseInt(value) || 0);
+                                          }
+                                       }}
                                     />
                                  </FormControl>
                                  <FormDescription>

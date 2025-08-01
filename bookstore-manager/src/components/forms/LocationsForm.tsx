@@ -25,10 +25,21 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import LocationsService from "@/services/LocationsService";
 
+// Enhanced schema with input sanitization
 const locationSchema = z.object({
-   slocID: z.number().optional(),
-   slocName: z.string().min(1, "Location name is required"),
+   locationID: z.number().optional(),
+   locationName: z.string()
+      .min(1, "Location name is required")
+      .max(100, "Location name must be less than 100 characters")
+      .regex(/^[a-zA-Z0-9\s&.,'-]+$/, "Location name can only contain letters, numbers, spaces, and common punctuation")
+      .transform(val => val.trim()),
+   address: z.string()
+      .max(200, "Address must be less than 200 characters")
+      .regex(/^[a-zA-Z0-9\s&.,'-]+$/, "Address can only contain letters, numbers, spaces, and common punctuation")
+      .transform(val => val.trim())
+      .optional(),
 });
 
 type LocationFormValues = z.infer<typeof locationSchema>;
@@ -54,7 +65,7 @@ export function LocationsForm({
    const form = useForm<LocationFormValues>({
       resolver: zodResolver(locationSchema),
       defaultValues: initialData || {
-         slocName: "",
+         locationName: "",
       },
    });
 
@@ -65,8 +76,14 @@ export function LocationsForm({
    async function onSubmit(data: LocationFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new location
+            await LocationsService.create(data);
+         } else if (isEditMode && initialData?.locationID) {
+            // Update existing location
+            await LocationsService.update(initialData.locationID, data);
+         }
+         
          if (onSave) {
             onSave(data);
          }
@@ -74,6 +91,7 @@ export function LocationsForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving location:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -82,13 +100,15 @@ export function LocationsForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.locationID) {
+            await LocationsService.remove(initialData.locationID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting location:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -149,10 +169,10 @@ export function LocationsForm({
                   className="space-y-6"
                >
                   {/* Location ID (read-only for edit/view) */}
-                  {!isCreateMode && initialData?.slocID && (
+                  {!isCreateMode && initialData?.locationID && (
                      <FormField
                         control={form.control}
-                        name="slocID"
+                        name="locationID"
                         render={({ field }) => (
                            <FormItem>
                               <FormLabel>Location ID</FormLabel>
@@ -175,7 +195,7 @@ export function LocationsForm({
                   {/* Location Name */}
                   <FormField
                      control={form.control}
-                     name="slocName"
+                     name="locationName"
                      render={({ field }) => (
                         <FormItem>
                            <FormLabel>Location Name</FormLabel>
@@ -227,7 +247,7 @@ export function LocationsForm({
             onOpenChange={setShowDeleteDialog}
             onConfirm={handleDelete}
             isDeleting={isDeleting}
-            itemName={initialData?.slocName || ""}
+            itemName={initialData?.locationName || ""}
             itemType="storage location"
          />
       </Card>

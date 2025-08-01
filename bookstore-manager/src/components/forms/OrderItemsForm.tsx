@@ -26,14 +26,15 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import OrderItemsService from "@/services/OrderItemsService";
 
+// Enhanced schema with input sanitization
 const orderItemSchema = z.object({
    orderItemID: z.number().optional(),
-   orderID: z.number(),
+   orderID: z.number().min(1, "Order is required"),
    bookID: z.number().min(1, "Book is required"),
    quantity: z.number().min(1, "Quantity must be at least 1"),
-   individualPrice: z.number().min(0, "Price must be positive"),
-   subtotal: z.number().min(0, "Subtotal must be positive"),
+   price: z.number().min(0, "Price must be positive"),
 });
 
 type OrderItemFormValues = z.infer<typeof orderItemSchema>;
@@ -97,8 +98,7 @@ export function OrderItemsForm({
          orderID: orderID,
          bookID: 0,
          quantity: 1,
-         individualPrice: 0,
-         subtotal: 0,
+         price: 0,
       },
    });
 
@@ -109,8 +109,14 @@ export function OrderItemsForm({
    async function onSubmit(data: OrderItemFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new order item
+            await OrderItemsService.create(data);
+         } else if (isEditMode && initialData?.orderItemID) {
+            // Update existing order item
+            await OrderItemsService.update(initialData.orderItemID, data);
+         }
+
          if (onSave) {
             onSave(data);
          }
@@ -118,6 +124,7 @@ export function OrderItemsForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving order item:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -126,13 +133,15 @@ export function OrderItemsForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.orderItemID) {
+            await OrderItemsService.remove(initialData.orderItemID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting order item:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -278,14 +287,23 @@ export function OrderItemsForm({
                               <FormLabel>Quantity</FormLabel>
                               <FormControl>
                                  <Input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     placeholder="1"
-                                    {...field}
-                                    onChange={(e) =>
-                                       field.onChange(
-                                          parseInt(e.target.value) || 0
-                                       )
-                                    }
+                                    value={field.value || ""}
+                                    onChange={(e) => {
+                                       const value = e.target.value;
+                                       if (
+                                          value === "" ||
+                                          /^\d+$/.test(value)
+                                       ) {
+                                          field.onChange(
+                                             value === ""
+                                                ? 0
+                                                : parseInt(value) || 0
+                                          );
+                                       }
+                                    }}
                                     disabled={isViewMode}
                                  />
                               </FormControl>
@@ -296,21 +314,29 @@ export function OrderItemsForm({
 
                      <FormField
                         control={form.control}
-                        name="individualPrice"
+                        name="price"
                         render={({ field }) => (
                            <FormItem>
                               <FormLabel>Price per Unit</FormLabel>
                               <FormControl>
                                  <Input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
+                                    inputMode="decimal"
                                     placeholder="0.00"
-                                    {...field}
-                                    onChange={(e) =>
-                                       field.onChange(
-                                          parseFloat(e.target.value) || 0
-                                       )
-                                    }
+                                    value={field.value || ""}
+                                    onChange={(e) => {
+                                       const value = e.target.value;
+                                       if (
+                                          value === "" ||
+                                          /^\d*\.?\d*$/.test(value)
+                                       ) {
+                                          field.onChange(
+                                             value === ""
+                                                ? 0
+                                                : parseFloat(value) || 0
+                                          );
+                                       }
+                                    }}
                                     disabled={isViewMode}
                                  />
                               </FormControl>
@@ -329,15 +355,23 @@ export function OrderItemsForm({
                            <FormLabel>Subtotal</FormLabel>
                            <FormControl>
                               <Input
-                                 type="number"
-                                 step="0.01"
+                                 type="text"
+                                 inputMode="decimal"
                                  placeholder="0.00"
-                                 {...field}
-                                 onChange={(e) =>
-                                    field.onChange(
-                                       parseFloat(e.target.value) || 0
-                                    )
-                                 }
+                                 value={field.value || ""}
+                                 onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (
+                                       value === "" ||
+                                       /^\d*\.?\d*$/.test(value)
+                                    ) {
+                                       field.onChange(
+                                          value === ""
+                                             ? 0
+                                             : parseFloat(value) || 0
+                                       );
+                                    }
+                                 }}
                                  disabled={isViewMode}
                               />
                            </FormControl>

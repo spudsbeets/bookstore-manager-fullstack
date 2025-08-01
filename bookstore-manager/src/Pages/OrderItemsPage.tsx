@@ -18,6 +18,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Sample data for demonstration
 const sampleOrders = [
@@ -64,6 +65,7 @@ const sampleOrderItems = [
 ];
 
 export function OrderItemsPage() {
+   const navigate = useNavigate();
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
@@ -142,6 +144,11 @@ export function OrderItemsPage() {
    const handleAddOrderItem = () => {
       setCurrentView("create");
       setSelectViewOption("Create Order Item");
+   };
+
+   const handleCreateOrder = () => {
+      // Navigate to Orders page to create a new order
+      navigate("/orders");
    };
 
    const handleEditOrderItem = (orderItem: any) => {
@@ -321,6 +328,7 @@ export function OrderItemsPage() {
                            onAdd={handleAddOrderItem}
                            onEdit={handleEditOrderItem}
                            onView={handleViewOrderItem}
+                           onCreateOrder={handleCreateOrder}
                         />
                      </div>
                   </CardContent>

@@ -8,7 +8,7 @@ class GenresModel extends BaseModel {
    // Custom methods specific to Genres
    async findByName(name) {
       try {
-         const [rows] = await this.findAll(`WHERE genreName LIKE '%${name}%'`);
+         const rows = await this.findAll(`WHERE genreName LIKE '%${name}%'`);
          return rows;
       } catch (error) {
          console.error("Error finding genre by name:", error);
@@ -18,7 +18,7 @@ class GenresModel extends BaseModel {
 
    async findAllOrdered() {
       try {
-         const [rows] = await this.findAll("ORDER BY genreName");
+         const rows = await this.findAll("ORDER BY genreName");
          return rows;
       } catch (error) {
          console.error("Error fetching genres ordered:", error);

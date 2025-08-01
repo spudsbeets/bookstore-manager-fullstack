@@ -32,13 +32,12 @@ import {
    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import BookAuthorsService from "@/services/BookAuthorsService";
 
 interface BookAuthor {
    bookAuthorID: number;
-   authorID: number;
-   bookID: number;
-   authorName?: string; // For display purposes
-   bookTitle?: string; // For display purposes
+   title: string;
+   author: string;
 }
 
 interface BookAuthorsListProps {
@@ -47,6 +46,7 @@ interface BookAuthorsListProps {
    onEdit?: (bookAuthor: BookAuthor) => void;
    onDelete?: (bookAuthor: BookAuthor) => void;
    onAdd?: () => void;
+   onCreateAuthor?: () => void; // New prop for creating authors
 }
 
 export function BookAuthorsList({
@@ -55,6 +55,7 @@ export function BookAuthorsList({
    onEdit,
    onDelete,
    onAdd,
+   onCreateAuthor,
 }: BookAuthorsListProps) {
    const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>([]);
    const [searchTerm, setSearchTerm] = useState("");
@@ -153,22 +154,41 @@ export function BookAuthorsList({
                         Authors for this book ({bookAuthors.length} total)
                      </CardDescription>
                   </div>
-                  {onAdd && (
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button
-                              onClick={onAdd}
-                              className="flex items-center gap-2"
-                           >
-                              <Plus className="h-4 w-4" />
-                              Add Author
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>Add a new author to this book</p>
-                        </TooltipContent>
-                     </Tooltip>
-                  )}
+                  <div className="flex gap-2">
+                     {onAdd && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onAdd}
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Author to Book
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Add an existing author to this book</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                     {onCreateAuthor && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onCreateAuthor}
+                                 variant="outline"
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Author
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Create a new author record</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                  </div>
                </div>
             </CardHeader>
             <CardContent>

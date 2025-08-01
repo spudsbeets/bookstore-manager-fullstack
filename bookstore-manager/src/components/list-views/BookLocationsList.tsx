@@ -48,6 +48,7 @@ interface BookLocationsListProps {
    onEdit?: (bookLocation: BookLocation) => void;
    onDelete?: (bookLocation: BookLocation) => void;
    onAdd?: () => void;
+   onCreateLocation?: () => void; // New prop for creating locations
 }
 
 export function BookLocationsList({
@@ -56,6 +57,7 @@ export function BookLocationsList({
    onEdit,
    onDelete,
    onAdd,
+   onCreateLocation,
 }: BookLocationsListProps) {
    const [bookLocations, setBookLocations] = useState<BookLocation[]>([]);
    const [searchTerm, setSearchTerm] = useState("");
@@ -157,22 +159,41 @@ export function BookLocationsList({
                         total)
                      </CardDescription>
                   </div>
-                  {onAdd && (
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button
-                              onClick={onAdd}
-                              className="flex items-center gap-2"
-                           >
-                              <Plus className="h-4 w-4" />
-                              Add Location
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>Add a new storage location for this book</p>
-                        </TooltipContent>
-                     </Tooltip>
-                  )}
+                  <div className="flex gap-2">
+                     {onAdd && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onAdd}
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Location to Book
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Add an existing location to this book</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                     {onCreateLocation && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onCreateLocation}
+                                 variant="outline"
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Location
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Create a new location record</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                  </div>
                </div>
             </CardHeader>
             <CardContent>

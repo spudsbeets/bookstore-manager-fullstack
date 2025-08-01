@@ -16,69 +16,53 @@ export function GenresPage() {
       "list" | "create" | "edit" | "view"
    >("list");
    const [selectedGenre, setSelectedGenre] = useState<any>(null);
-   const [selectViewOption, setSelectViewOption] = useState("List Genres");
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for forcing re-render
 
-   const viewArray = [
-      "List Genres",
-      "Create Genre",
-      "Edit Genre",
-      "View Genre",
-   ];
+   // View labels mapping
+   const viewLabels = {
+      list: "List Genres",
+      create: "Create Genre",
+      edit: "Edit Genre",
+      view: "View Genre",
+   };
 
    const handleCreate = () => {
       setCurrentView("create");
-      setSelectViewOption("Create Genre");
    };
    const handleEdit = (genre: any) => {
       setSelectedGenre(genre);
       setCurrentView("edit");
-      setSelectViewOption("Edit Genre");
    };
    const handleView = (genre: any) => {
       setSelectedGenre(genre);
       setCurrentView("view");
-      setSelectViewOption("View Genre");
    };
    const handleDelete = () => {
       console.log("Delete genre:", selectedGenre);
       setCurrentView("list");
-      setSelectViewOption("List Genres");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleSave = (data: any) => {
       console.log("Save genre:", data);
       setCurrentView("list");
-      setSelectViewOption("List Genres");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleBack = () => {
       setCurrentView("list");
-      setSelectViewOption("List Genres");
    };
 
-   const handleViewChange = (value: string) => {
-      setSelectViewOption(value);
-      switch (value) {
-         case "List Genres":
-            setCurrentView("list");
-            break;
-         case "Create Genre":
-            setCurrentView("create");
-            break;
-         case "Edit Genre":
-            if (selectedGenre) {
-               setCurrentView("edit");
-            } else {
-               setSelectViewOption("List Genres");
-            }
-            break;
-         case "View Genre":
-            if (selectedGenre) {
-               setCurrentView("view");
-            } else {
-               setSelectViewOption("List Genres");
-            }
-            break;
-         default:
-            setCurrentView("list");
+   const handleViewChange = (label: string) => {
+      // Find the key ('list', 'create', etc.) from the label
+      const viewKey = Object.keys(viewLabels).find(
+         (key) => viewLabels[key as keyof typeof viewLabels] === label
+      ) as "list" | "create" | "edit" | "view";
+
+      if (viewKey === "edit" || viewKey === "view") {
+         if (selectedGenre) {
+            setCurrentView(viewKey);
+         }
+      } else {
+         setCurrentView(viewKey);
       }
    };
 
@@ -90,16 +74,24 @@ export function GenresPage() {
                <div className="flex flex-col items-start gap-2">
                   <Label>View Options</Label>
                   <Select
-                     value={selectViewOption}
+                     value={viewLabels[currentView]}
                      onValueChange={handleViewChange}
                   >
                      <SelectTrigger className="w-[200px]">
-                        <SelectValue>{selectViewOption}</SelectValue>
+                        <SelectValue />
                      </SelectTrigger>
                      <SelectContent>
-                        {viewArray.map((view) => (
-                           <SelectItem key={view} value={view}>
-                              {view}
+                        {Object.values(viewLabels).map((label) => (
+                           <SelectItem
+                              key={label}
+                              value={label}
+                              disabled={
+                                 (label === "Edit Genre" ||
+                                    label === "View Genre") &&
+                                 !selectedGenre
+                              }
+                           >
+                              {label}
                            </SelectItem>
                         ))}
                      </SelectContent>
@@ -147,6 +139,7 @@ export function GenresPage() {
 
             {currentView === "list" && (
                <GenresList
+                  key={refreshKey}
                   onCreate={handleCreate}
                   onEdit={handleEdit}
                   onView={handleView}

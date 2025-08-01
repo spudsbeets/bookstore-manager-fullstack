@@ -25,10 +25,16 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import GenresService from "@/services/GenresService";
 
+// Enhanced schema with input sanitization
 const genreSchema = z.object({
    genreID: z.number().optional(),
-   genreName: z.string().min(1, "Genre name is required"),
+   genreName: z.string()
+      .min(1, "Genre name is required")
+      .max(50, "Genre name must be less than 50 characters")
+      .regex(/^[a-zA-Z\s&-]+$/, "Genre name can only contain letters, spaces, and ampersands")
+      .transform(val => val.trim()),
 });
 
 type GenreFormValues = z.infer<typeof genreSchema>;
@@ -65,8 +71,14 @@ export function GenresForm({
    async function onSubmit(data: GenreFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new genre
+            await GenresService.create(data);
+         } else if (isEditMode && initialData?.genreID) {
+            // Update existing genre
+            await GenresService.update(initialData.genreID, data);
+         }
+         
          if (onSave) {
             onSave(data);
          }
@@ -74,6 +86,7 @@ export function GenresForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving genre:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -82,13 +95,15 @@ export function GenresForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.genreID) {
+            await GenresService.remove(initialData.genreID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting genre:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);

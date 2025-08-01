@@ -26,15 +26,16 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import OrdersService from "@/services/OrdersService";
 
+// Enhanced schema with input sanitization
 const orderSchema = z.object({
    orderID: z.number().optional(),
-   orderDate: z.string().min(1, "Order date is required"),
-   orderTime: z.string().min(1, "Order time is required"),
-   total: z.number().min(0, "Total must be positive"),
-   taxRate: z.number().min(0, "Tax rate must be positive"),
    customerID: z.number().min(1, "Customer is required"),
-   salesRateID: z.number().min(1, "Sales rate location is required"),
+   orderDate: z.string().min(1, "Order date is required"),
+   orderTime: z.string().optional(),
+   total: z.number().min(0, "Total must be positive"),
+   status: z.string().min(1, "Status is required"),
 });
 
 type OrderFormValues = z.infer<typeof orderSchema>;
@@ -129,8 +130,14 @@ export function OrdersForm({
    async function onSubmit(data: OrderFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new order
+            await OrdersService.create(data);
+         } else if (isEditMode && initialData?.orderID) {
+            // Update existing order
+            await OrdersService.update(initialData.orderID, data);
+         }
+         
          if (onSave) {
             onSave(data);
          }
@@ -138,6 +145,7 @@ export function OrdersForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving order:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -146,13 +154,15 @@ export function OrdersForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.orderID) {
+            await OrdersService.remove(initialData.orderID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting order:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);

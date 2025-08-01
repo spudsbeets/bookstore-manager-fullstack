@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,107 +23,14 @@ import {
 } from "@/components/ui/card";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Users } from "lucide-react";
+import BookAuthorsService from "@/services/BookAuthorsService";
+import BooksService, { type Book } from "@/services/BooksService";
+import AuthorsService from "@/services/AuthorsService";
 
-// Sample data - define locally since they're not exported
-const sampleBooks = [
-   {
-      bookID: 1,
-      title: "Inherent Vice",
-      publicationDate: "2009-08-04",
-      "isbn-10": "0143126850",
-      "isbn-13": "9780143126850",
-      inStock: true,
-      price: 15.99,
-      inventoryQty: 5,
-      publisherID: 2,
-      publisherName: "Penguin Books",
-   },
-   {
-      bookID: 2,
-      title: "Beloved",
-      publicationDate: "1987-09-01",
-      "isbn-10": "1400033416",
-      "isbn-13": "9781400033416",
-      inStock: true,
-      price: 17.99,
-      inventoryQty: 7,
-      publisherID: 1,
-      publisherName: "Vintage International",
-   },
-   {
-      bookID: 3,
-      title: "The Talisman",
-      publicationDate: "1984-11-08",
-      "isbn-10": "0670691992",
-      "isbn-13": "9780670691999",
-      inStock: true,
-      price: 18.99,
-      inventoryQty: 6,
-      publisherID: 3,
-      publisherName: "Viking Press",
-   },
-   {
-      bookID: 4,
-      title: "Good Omens",
-      publicationDate: "2006-11-28",
-      "isbn-10": "0060853980",
-      "isbn-13": "9780060853983",
-      inStock: true,
-      price: 16.99,
-      inventoryQty: 8,
-      publisherID: 4,
-      publisherName: "William Morrow",
-   },
-];
-
-const sampleAuthors = [
-   {
-      authorID: 1,
-      firstName: "Toni",
-      middleName: null,
-      lastName: "Morrison",
-      fullName: "Toni Morrison",
-   },
-   {
-      authorID: 2,
-      firstName: "Thomas",
-      middleName: null,
-      lastName: "Pynchon",
-      fullName: "Thomas Pynchon",
-   },
-   {
-      authorID: 3,
-      firstName: "Stephen",
-      middleName: "Edwin",
-      lastName: "King",
-      fullName: "Stephen Edwin King",
-   },
-   {
-      authorID: 4,
-      firstName: "Peter",
-      middleName: null,
-      lastName: "Straub",
-      fullName: "Peter Straub",
-   },
-   {
-      authorID: 5,
-      firstName: "Neil",
-      middleName: "Richard",
-      lastName: "Gaiman",
-      fullName: "Neil Richard Gaiman",
-   },
-   {
-      authorID: 6,
-      firstName: "Terry",
-      middleName: null,
-      lastName: "Pratchett",
-      fullName: "Terry Pratchett",
-   },
-];
-
+// Enhanced schema with input sanitization
 const bookAuthorSchema = z.object({
-   bookID: z.number(),
-   authorID: z.number(),
+   bookID: z.number().min(1, "Book ID is required"),
+   authorID: z.number().min(1, "Author is required"),
 });
 
 type BookAuthorFormData = z.infer<typeof bookAuthorSchema>;
@@ -143,8 +50,43 @@ export function BookAuthorsForm({
    onSave,
    onDelete,
 }: BookAuthorsFormProps) {
+   const [isSubmitting, setIsSubmitting] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+   const [currentBook, setCurrentBook] = useState<any>(null);
+   const [authors, setAuthors] = useState<any[]>([]);
+   const [selectedAuthor, setSelectedAuthor] = useState<any>(null);
+   const [isLoading, setIsLoading] = useState(true);
+
+   // Fetch book and authors data
+   useEffect(() => {
+      const fetchData = async () => {
+         setIsLoading(true);
+         try {
+            // Fetch book details
+            const bookResponse = await BooksService.get(bookID);
+            setCurrentBook(bookResponse.data);
+
+            // Fetch all authors for dropdown
+            const authorsResponse = await AuthorsService.getAll();
+            setAuthors(authorsResponse.data);
+
+            // If editing, get the current author details
+            if (initialData?.authorID) {
+               const authorResponse = await AuthorsService.get(
+                  initialData.authorID
+               );
+               setSelectedAuthor(authorResponse.data);
+            }
+         } catch (error) {
+            console.error("Error fetching data:", error);
+         } finally {
+            setIsLoading(false);
+         }
+      };
+
+      fetchData();
+   }, [bookID, initialData?.authorID]);
 
    const form = useForm<BookAuthorFormData>({
       resolver: zodResolver(bookAuthorSchema),
@@ -154,30 +96,64 @@ export function BookAuthorsForm({
       },
    });
 
-   const onSubmit = (data: BookAuthorFormData) => {
-      console.log("Book author data:", data);
-      onSave(data);
+   const onSubmit = async (data: BookAuthorFormData) => {
+      setIsSubmitting(true);
+      try {
+         if (mode === "create") {
+            // Create new book-author relationship
+            await BookAuthorsService.create(data);
+         } else if (mode === "edit" && initialData?.bookAuthorID) {
+            // Update existing book-author relationship
+            await BookAuthorsService.update(initialData.bookAuthorID, data);
+         }
+
+         onSave(data);
+      } catch (error) {
+         console.error("Error saving book author:", error);
+         // You might want to show an error message to the user here
+      } finally {
+         setIsSubmitting(false);
+      }
    };
 
    const handleDelete = async () => {
-      if (!onDelete) return;
+      if (!onDelete || !initialData?.bookAuthorID) return;
 
       setIsDeleting(true);
       try {
-         await onDelete();
+         await BookAuthorsService.remove(initialData.bookAuthorID);
+         onDelete();
+      } catch (error) {
+         console.error("Error deleting book author:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
       }
    };
 
-   // Get the current book and author details for display
-   const currentBook = sampleBooks.find((book: any) => book.bookID === bookID);
-   const selectedAuthor = initialData
-      ? sampleAuthors.find(
-           (author: any) => author.authorID === initialData.authorID
-        )
-      : null;
+   if (isLoading) {
+      return (
+         <div className="max-w-2xl mx-auto space-y-6">
+            <Card>
+               <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                     <Users className="h-5 w-5" />
+                     Loading...
+                  </CardTitle>
+                  <CardDescription>
+                     Loading book and author data...
+                  </CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <div className="flex items-center justify-center py-8">
+                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+               </CardContent>
+            </Card>
+         </div>
+      );
+   }
 
    return (
       <div className="max-w-2xl mx-auto space-y-6">
@@ -224,12 +200,12 @@ export function BookAuthorsForm({
                                  <FormLabel>Author</FormLabel>
                                  <FormControl>
                                     <SearchableSelect
-                                       options={sampleAuthors.map(
-                                          (author: any) => ({
-                                             value: author.authorID.toString(),
-                                             label: author.fullName,
-                                          })
-                                       )}
+                                       options={authors.map((author: any) => ({
+                                          value: author.authorID.toString(),
+                                          label:
+                                             author.fullName ||
+                                             `${author.firstName} ${author.lastName}`,
+                                       }))}
                                        value={field.value?.toString()}
                                        onValueChange={(value) =>
                                           field.onChange(Number(value))
@@ -237,6 +213,7 @@ export function BookAuthorsForm({
                                        placeholder="Select an author"
                                        searchPlaceholder="Search authors..."
                                        emptyMessage="No authors found."
+                                       disabled={isLoading}
                                     />
                                  </FormControl>
                                  <FormMessage />
@@ -255,12 +232,12 @@ export function BookAuthorsForm({
                                  <FormLabel>Update Author</FormLabel>
                                  <FormControl>
                                     <SearchableSelect
-                                       options={sampleAuthors.map(
-                                          (author: any) => ({
-                                             value: author.authorID.toString(),
-                                             label: author.fullName,
-                                          })
-                                       )}
+                                       options={authors.map((author: any) => ({
+                                          value: author.authorID.toString(),
+                                          label:
+                                             author.fullName ||
+                                             `${author.firstName} ${author.lastName}`,
+                                       }))}
                                        value={field.value?.toString()}
                                        onValueChange={(value) =>
                                           field.onChange(Number(value))
@@ -268,6 +245,7 @@ export function BookAuthorsForm({
                                        placeholder="Select a new author"
                                        searchPlaceholder="Search authors..."
                                        emptyMessage="No authors found."
+                                       disabled={isLoading}
                                     />
                                  </FormControl>
                                  <FormDescription>
@@ -298,10 +276,19 @@ export function BookAuthorsForm({
 
                      {/* Action Buttons */}
                      <div className="flex gap-2 pt-4">
-                        <Button type="submit" disabled={mode === "view"}>
-                           {mode === "create" && "Add Author"}
-                           {mode === "edit" && "Update Author"}
-                           {mode === "view" && "View Details"}
+                        <Button
+                           type="submit"
+                           disabled={mode === "view" || isSubmitting}
+                        >
+                           {isSubmitting ? (
+                              "Saving..."
+                           ) : (
+                              <>
+                                 {mode === "create" && "Add Author"}
+                                 {mode === "edit" && "Update Author"}
+                                 {mode === "view" && "View Details"}
+                              </>
+                           )}
                         </Button>
 
                         {mode === "edit" && onDelete && (

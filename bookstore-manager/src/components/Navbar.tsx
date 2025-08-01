@@ -286,20 +286,6 @@ export function Navbar() {
                </div>
             )}
          </div>
-
-         {/* Active Section Display */}
-         {activeSection && (
-            <div className={`border-t bg-muted/50 ${currentLayout.className}`}>
-               <div className={`${currentLayout.containerClass} py-2`}>
-                  <div className="flex items-center space-x-2 text-sm">
-                     <span className="text-muted-foreground">Active:</span>
-                     <span className="font-medium capitalize">
-                        {activeSection.replace(/-/g, " ")}
-                     </span>
-                  </div>
-               </div>
-            </div>
-         )}
       </nav>
    );
 }

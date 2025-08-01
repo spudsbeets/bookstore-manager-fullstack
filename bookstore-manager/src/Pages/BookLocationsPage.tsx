@@ -19,6 +19,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Sample data for demonstration
 const sampleBooks = [
@@ -77,6 +78,7 @@ const sampleBookLocations = [
 ];
 
 export function BookLocationsPage() {
+   const navigate = useNavigate();
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
@@ -157,6 +159,11 @@ export function BookLocationsPage() {
    const handleAddBookLocation = () => {
       setCurrentView("create");
       setSelectViewOption("Create Book Location");
+   };
+
+   const handleCreateLocation = () => {
+      // Navigate to Locations page to create a new location
+      navigate("/locations");
    };
 
    const handleEditBookLocation = (bookLocation: any) => {
@@ -332,6 +339,7 @@ export function BookLocationsPage() {
                            onAdd={handleAddBookLocation}
                            onEdit={handleEditBookLocation}
                            onView={handleViewBookLocation}
+                           onCreateLocation={handleCreateLocation}
                         />
                      </div>
                   </CardContent>

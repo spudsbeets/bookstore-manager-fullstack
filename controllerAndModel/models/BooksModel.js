@@ -106,6 +106,66 @@ class BooksModel extends BaseModel {
          throw error;
       }
    }
+
+   // Override create method to handle column names with hyphens
+   async create(data) {
+      try {
+         const columns = Object.keys(data)
+            .map((col) => {
+               // Wrap column names with hyphens in backticks
+               if (col.includes("-")) {
+                  return `\`${col}\``;
+               }
+               return col;
+            })
+            .join(", ");
+
+         const placeholders = Object.keys(data)
+            .map(() => "?")
+            .join(", ");
+         const values = Object.values(data);
+
+         const [result] = await pool.query(
+            `INSERT INTO ${this.tableName} (${columns}) VALUES (${placeholders})`,
+            values
+         );
+
+         return { id: result.insertId, ...data };
+      } catch (error) {
+         console.error(`Error creating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
+
+   // Override update method to handle column names with hyphens
+   async update(id, data) {
+      try {
+         const setClause = Object.keys(data)
+            .map((key) => {
+               // Wrap column names with hyphens in backticks
+               if (key.includes("-")) {
+                  return `\`${key}\` = ?`;
+               }
+               return `${key} = ?`;
+            })
+            .join(", ");
+         const values = [...Object.values(data), id];
+
+         const [result] = await pool.query(
+            `UPDATE ${this.tableName} SET ${setClause} WHERE ${this.idColumn} = ?`,
+            values
+         );
+
+         if (result.affectedRows === 0) {
+            return null;
+         }
+
+         return { id, ...data };
+      } catch (error) {
+         console.error(`Error updating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
 }
 
 export default new BooksModel();

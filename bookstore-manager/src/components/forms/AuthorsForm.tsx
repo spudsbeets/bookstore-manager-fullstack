@@ -25,13 +25,38 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import AuthorsService from "@/services/AuthorsService";
 
+// Enhanced schema with input sanitization
 const authorSchema = z.object({
    authorID: z.number().optional(),
-   firstName: z.string().min(1, "First name is required"),
-   middleName: z.string().optional(),
-   lastName: z.string().optional(),
-   fullName: z.string().optional(),
+   firstName: z
+      .string()
+      .min(1, "First name is required")
+      .max(50, "First name must be less than 50 characters")
+      .regex(
+         /^[a-zA-Z\s'-]+$/,
+         "First name can only contain letters, spaces, hyphens, and apostrophes"
+      )
+      .transform((val) => val.trim()),
+   middleName: z
+      .string()
+      .max(50, "Middle name must be less than 50 characters")
+      .regex(
+         /^[a-zA-Z\s'-]*$/,
+         "Middle name can only contain letters, spaces, hyphens, and apostrophes"
+      )
+      .transform((val) => val.trim())
+      .optional(),
+   lastName: z
+      .string()
+      .max(50, "Last name must be less than 50 characters")
+      .regex(
+         /^[a-zA-Z\s'-]*$/,
+         "Last name can only contain letters, spaces, hyphens, and apostrophes"
+      )
+      .transform((val) => val.trim())
+      .optional(),
 });
 
 type AuthorFormValues = z.infer<typeof authorSchema>;
@@ -60,7 +85,6 @@ export function AuthorsForm({
          firstName: "",
          middleName: "",
          lastName: "",
-         fullName: "",
       },
    });
 
@@ -71,8 +95,14 @@ export function AuthorsForm({
    async function onSubmit(data: AuthorFormValues) {
       setIsSubmitting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1000));
+         if (isCreateMode) {
+            // Create new author
+            await AuthorsService.create(data);
+         } else if (isEditMode && initialData?.authorID) {
+            // Update existing author
+            await AuthorsService.update(initialData.authorID, data);
+         }
+
          if (onSave) {
             onSave(data);
          }
@@ -80,6 +110,7 @@ export function AuthorsForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving author:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsSubmitting(false);
       }
@@ -88,13 +119,15 @@ export function AuthorsForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         if (initialData?.authorID) {
+            await AuthorsService.remove(initialData.authorID);
+         }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting author:", error);
+         // You might want to show an error message to the user here
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -237,28 +270,6 @@ export function AuthorsForm({
                      />
                   </div>
 
-                  {/* Full Name */}
-                  <FormField
-                     control={form.control}
-                     name="fullName"
-                     render={({ field }) => (
-                        <FormItem>
-                           <FormLabel>Full Name</FormLabel>
-                           <FormControl>
-                              <Input
-                                 placeholder="Enter full name"
-                                 {...field}
-                                 disabled={isViewMode}
-                              />
-                           </FormControl>
-                           <FormDescription>
-                              Author's complete name as it appears on books
-                           </FormDescription>
-                           <FormMessage />
-                        </FormItem>
-                     )}
-                  />
-
                   {/* Action Buttons */}
                   {!isViewMode && (
                      <div className="flex justify-between">
@@ -292,7 +303,11 @@ export function AuthorsForm({
             onOpenChange={setShowDeleteDialog}
             onConfirm={handleDelete}
             isDeleting={isDeleting}
-            itemName={initialData?.fullName || ""}
+            itemName={
+               initialData?.firstName && initialData?.lastName
+                  ? `${initialData.firstName} ${initialData.lastName}`
+                  : "this author"
+            }
             itemType="author"
          />
       </Card>

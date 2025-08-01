@@ -55,6 +55,7 @@ interface OrderItemsListProps {
    onEdit?: (orderItem: OrderItem) => void;
    onDelete?: (orderItem: OrderItem) => void;
    onAdd?: () => void;
+   onCreateOrder?: () => void; // New prop for creating orders
 }
 
 export function OrderItemsList({
@@ -63,6 +64,7 @@ export function OrderItemsList({
    onEdit,
    onDelete,
    onAdd,
+   onCreateOrder,
 }: OrderItemsListProps) {
    const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
    const [searchTerm, setSearchTerm] = useState("");
@@ -164,22 +166,41 @@ export function OrderItemsList({
                         Items in order #{orderID} ({orderItems.length} total)
                      </CardDescription>
                   </div>
-                  {onAdd && (
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button
-                              onClick={onAdd}
-                              className="flex items-center gap-2"
-                           >
-                              <Plus className="h-4 w-4" />
-                              Add Order Item
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>Add a new item to this order</p>
-                        </TooltipContent>
-                     </Tooltip>
-                  )}
+                  <div className="flex gap-2">
+                     {onAdd && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onAdd}
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Order Item to Order
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Add an existing item to this order</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                     {onCreateOrder && (
+                        <Tooltip>
+                           <TooltipTrigger asChild>
+                              <Button
+                                 onClick={onCreateOrder}
+                                 variant="outline"
+                                 className="flex items-center gap-2"
+                              >
+                                 <Plus className="h-4 w-4" />
+                                 Add Order Item
+                              </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                              <p>Create a new order item record</p>
+                           </TooltipContent>
+                        </Tooltip>
+                     )}
+                  </div>
                </div>
             </CardHeader>
             <CardContent>

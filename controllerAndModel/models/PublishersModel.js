@@ -8,7 +8,7 @@ class PublishersModel extends BaseModel {
    // Custom methods specific to Publishers
    async findByName(name) {
       try {
-         const [rows] = await this.findAll(
+         const rows = await this.findAll(
             `WHERE publisherName LIKE '%${name}%'`
          );
          return rows;
@@ -20,7 +20,7 @@ class PublishersModel extends BaseModel {
 
    async findAllOrdered() {
       try {
-         const [rows] = await this.findAll("ORDER BY publisherName");
+         const rows = await this.findAll("ORDER BY publisherName");
          return rows;
       } catch (error) {
          console.error("Error fetching publishers ordered:", error);

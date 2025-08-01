@@ -16,69 +16,53 @@ export function SalesRatesPage() {
       "list" | "create" | "edit" | "view"
    >("list");
    const [selectedSalesRate, setSelectedSalesRate] = useState<any>(null);
-   const [selectViewOption, setSelectViewOption] = useState("List Sales Rates");
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for forcing re-render
 
-   const viewArray = [
-      "List Sales Rates",
-      "Create Sales Rate",
-      "Edit Sales Rate",
-      "View Sales Rate",
-   ];
+   // View labels mapping
+   const viewLabels = {
+      list: "List Sales Rates",
+      create: "Create Sales Rate",
+      edit: "Edit Sales Rate",
+      view: "View Sales Rate",
+   };
 
    const handleCreate = () => {
       setCurrentView("create");
-      setSelectViewOption("Create Sales Rate");
    };
    const handleEdit = (salesRate: any) => {
       setSelectedSalesRate(salesRate);
       setCurrentView("edit");
-      setSelectViewOption("Edit Sales Rate");
    };
    const handleView = (salesRate: any) => {
       setSelectedSalesRate(salesRate);
       setCurrentView("view");
-      setSelectViewOption("View Sales Rate");
    };
    const handleDelete = () => {
       console.log("Delete sales rate:", selectedSalesRate);
       setCurrentView("list");
-      setSelectViewOption("List Sales Rates");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleSave = (data: any) => {
       console.log("Save sales rate:", data);
       setCurrentView("list");
-      setSelectViewOption("List Sales Rates");
+      setRefreshKey((prev) => prev + 1); // Trigger refresh
    };
    const handleBack = () => {
       setCurrentView("list");
-      setSelectViewOption("List Sales Rates");
    };
 
-   const handleViewChange = (value: string) => {
-      setSelectViewOption(value);
-      switch (value) {
-         case "List Sales Rates":
-            setCurrentView("list");
-            break;
-         case "Create Sales Rate":
-            setCurrentView("create");
-            break;
-         case "Edit Sales Rate":
-            if (selectedSalesRate) {
-               setCurrentView("edit");
-            } else {
-               setSelectViewOption("List Sales Rates");
-            }
-            break;
-         case "View Sales Rate":
-            if (selectedSalesRate) {
-               setCurrentView("view");
-            } else {
-               setSelectViewOption("List Sales Rates");
-            }
-            break;
-         default:
-            setCurrentView("list");
+   const handleViewChange = (label: string) => {
+      // Find the key ('list', 'create', etc.) from the label
+      const viewKey = Object.keys(viewLabels).find(
+         (key) => viewLabels[key as keyof typeof viewLabels] === label
+      ) as "list" | "create" | "edit" | "view";
+
+      if (viewKey === "edit" || viewKey === "view") {
+         if (selectedSalesRate) {
+            setCurrentView(viewKey);
+         }
+      } else {
+         setCurrentView(viewKey);
       }
    };
 
@@ -92,16 +76,24 @@ export function SalesRatesPage() {
                <div className="flex flex-col items-start gap-2">
                   <Label>View Options</Label>
                   <Select
-                     value={selectViewOption}
+                     value={viewLabels[currentView]}
                      onValueChange={handleViewChange}
                   >
                      <SelectTrigger className="w-[200px]">
-                        <SelectValue>{selectViewOption}</SelectValue>
+                        <SelectValue />
                      </SelectTrigger>
                      <SelectContent>
-                        {viewArray.map((view) => (
-                           <SelectItem key={view} value={view}>
-                              {view}
+                        {Object.values(viewLabels).map((label) => (
+                           <SelectItem
+                              key={label}
+                              value={label}
+                              disabled={
+                                 (label === "Edit Sales Rate" ||
+                                    label === "View Sales Rate") &&
+                                 !selectedSalesRate
+                              }
+                           >
+                              {label}
                            </SelectItem>
                         ))}
                      </SelectContent>
@@ -152,6 +144,7 @@ export function SalesRatesPage() {
 
             {currentView === "list" && (
                <SalesRateLocationsList
+                  key={refreshKey}
                   onCreate={handleCreate}
                   onEdit={handleEdit}
                   onView={handleView}

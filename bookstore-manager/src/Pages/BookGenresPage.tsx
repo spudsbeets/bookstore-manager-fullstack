@@ -18,6 +18,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Tags } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Sample data for demonstration
 const sampleBooks = [
@@ -74,6 +75,7 @@ const sampleBookGenres = [
 ];
 
 export function BookGenresPage() {
+   const navigate = useNavigate();
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
@@ -152,6 +154,11 @@ export function BookGenresPage() {
    const handleAddBookGenre = () => {
       setCurrentView("create");
       setSelectViewOption("Create Book Genre");
+   };
+
+   const handleCreateGenre = () => {
+      // Navigate to Genres page to create a new genre
+      navigate("/genres");
    };
 
    const handleEditBookGenre = (bookGenre: any) => {
@@ -331,6 +338,7 @@ export function BookGenresPage() {
                            onAdd={handleAddBookGenre}
                            onEdit={handleEditBookGenre}
                            onView={handleViewBookGenre}
+                           onCreateGenre={handleCreateGenre}
                         />
                      </div>
                   </CardContent>

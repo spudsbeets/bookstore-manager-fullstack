@@ -18,7 +18,6 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge"; // Commented out unused import
 import {
    Plus,
    Search,
@@ -35,6 +34,7 @@ import {
    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import CustomersService from "@/services/CustomersService";
 
 interface Customer {
    customerID: number;
@@ -43,24 +43,6 @@ interface Customer {
    email?: string;
    phoneNumber?: string;
 }
-
-// Sample data - replace with actual API calls
-const sampleCustomers: Customer[] = [
-   {
-      customerID: 1,
-      firstName: "Reggie",
-      lastName: "Reggerson",
-      email: "regreg@reg.com",
-      phoneNumber: "3333888902",
-   },
-   {
-      customerID: 2,
-      firstName: "Gail",
-      lastName: "Nightingstocks",
-      email: "gailsmail@gmail.com",
-      phoneNumber: "2295730384",
-   },
-];
 
 interface CustomersListProps {
    onView?: (customer: Customer) => void;
@@ -84,13 +66,11 @@ export function CustomersList({
    const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
-      // Simulate API call
       const fetchCustomers = async () => {
          setIsLoading(true);
          try {
-            // Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setCustomers(sampleCustomers);
+            const response = await CustomersService.getAll();
+            setCustomers(response.data);
          } catch (error) {
             console.error("Error fetching customers:", error);
          } finally {
@@ -99,7 +79,7 @@ export function CustomersList({
       };
 
       fetchCustomers();
-   }, []);
+   }, []); // This will re-run when the component is re-mounted due to key change
 
    const filteredCustomers = customers.filter(
       (customer) =>
@@ -112,8 +92,7 @@ export function CustomersList({
    const handleDelete = async (customer: Customer) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await CustomersService.remove(customer.customerID);
          setCustomers(
             customers.filter((c) => c.customerID !== customer.customerID)
          );

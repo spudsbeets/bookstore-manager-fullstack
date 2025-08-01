@@ -226,16 +226,18 @@ export function InventoryForm() {
                                  <FormLabel>Price</FormLabel>
                                  <FormControl>
                                     <input
-                                       {...field}
-                                       type="number"
-                                       step="0.01"
+                                       type="text"
+                                       inputMode="decimal"
                                        className="w-full p-2 border rounded-md"
                                        placeholder="0.00"
-                                       onChange={(e) =>
-                                          field.onChange(
-                                             parseFloat(e.target.value) || 0
-                                          )
-                                       }
+                                       value={field.value || ""}
+                                       onChange={(e) => {
+                                          const value = e.target.value;
+                                          // Only allow numbers and one decimal point
+                                          if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                             field.onChange(value === "" ? 0 : parseFloat(value) || 0);
+                                          }
+                                       }}
                                     />
                                  </FormControl>
                                  <FormMessage />
@@ -253,15 +255,18 @@ export function InventoryForm() {
                                  <FormLabel>Total Inventory Quantity</FormLabel>
                                  <FormControl>
                                     <input
-                                       {...field}
-                                       type="number"
+                                       type="text"
+                                       inputMode="numeric"
                                        className="w-full p-2 border rounded-md"
                                        placeholder="0"
-                                       onChange={(e) =>
-                                          field.onChange(
-                                             parseInt(e.target.value) || 0
-                                          )
-                                       }
+                                       value={field.value || ""}
+                                       onChange={(e) => {
+                                          const value = e.target.value;
+                                          // Only allow numbers
+                                          if (value === "" || /^\d+$/.test(value)) {
+                                             field.onChange(value === "" ? 0 : parseInt(value) || 0);
+                                          }
+                                       }}
                                     />
                                  </FormControl>
                                  <FormMessage />
@@ -427,15 +432,18 @@ export function InventoryForm() {
                                     <FormLabel>Quantity at Location</FormLabel>
                                     <FormControl>
                                        <input
-                                          {...field}
-                                          type="number"
+                                          type="text"
+                                          inputMode="numeric"
                                           className="w-full p-2 border rounded-md"
                                           placeholder="0"
-                                          onChange={(e) =>
-                                             field.onChange(
-                                                parseInt(e.target.value) || 0
-                                             )
-                                          }
+                                          value={field.value || ""}
+                                          onChange={(e) => {
+                                             const value = e.target.value;
+                                             // Only allow numbers
+                                             if (value === "" || /^\d+$/.test(value)) {
+                                                field.onChange(value === "" ? 0 : parseInt(value) || 0);
+                                             }
+                                          }}
                                        />
                                     </FormControl>
                                     <FormMessage />

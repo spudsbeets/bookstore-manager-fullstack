@@ -8,7 +8,7 @@ class LocationsModel extends BaseModel {
    // Custom methods specific to Locations
    async findAllOrdered() {
       try {
-         const [rows] = await this.findAll("ORDER BY slocName");
+         const rows = await this.findAll("ORDER BY slocName");
          return rows;
       } catch (error) {
          console.error("Error fetching locations ordered:", error);
@@ -18,7 +18,7 @@ class LocationsModel extends BaseModel {
 
    async findByName(name) {
       try {
-         const [rows] = await this.findAll(`WHERE slocName LIKE '%${name}%'`);
+         const rows = await this.findAll(`WHERE slocName LIKE '%${name}%'`);
          return rows;
       } catch (error) {
          console.error("Error finding location by name:", error);

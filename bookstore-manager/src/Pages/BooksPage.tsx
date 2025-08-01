@@ -25,14 +25,22 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Users, Tags, MapPin } from "lucide-react";
+import { type Book } from "@/services/BooksService";
 
 export function BooksPage() {
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
-   const [selectedBook, setSelectedBook] = useState<any>(null);
-   const [selectViewOption, setSelectViewOption] = useState("List Books");
+   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
    const [activeTab, setActiveTab] = useState("details");
+
+   // View labels mapping
+   const viewLabels = {
+      list: "List Books",
+      create: "Create Book",
+      edit: "Edit Book",
+      view: "View Book",
+   };
 
    // State for intersection table editing
    const [bookAuthorView, setBookAuthorView] = useState<
@@ -48,64 +56,43 @@ export function BooksPage() {
    >("list");
    const [selectedBookLocation, setSelectedBookLocation] = useState<any>(null);
 
-   const viewArray = ["List Books", "Create Book", "Edit Book", "View Book"];
-
    const handleCreate = () => {
       setCurrentView("create");
-      setSelectViewOption("Create Book");
    };
-   const handleEdit = (book: any) => {
+   const handleEdit = (book: Book) => {
       setSelectedBook(book);
       setCurrentView("edit");
-      setSelectViewOption("Edit Book");
       setActiveTab("details");
    };
-   const handleView = (book: any) => {
+   const handleView = (book: Book) => {
       setSelectedBook(book);
       setCurrentView("view");
-      setSelectViewOption("View Book");
       setActiveTab("details");
    };
-   const handleDelete = () => {
-      console.log("Delete book:", selectedBook);
+   const handleDelete = (book: Book) => {
+      console.log("Delete book:", book);
       setCurrentView("list");
-      setSelectViewOption("List Books");
    };
    const handleSave = (data: any) => {
       console.log("Save book:", data);
       setCurrentView("list");
-      setSelectViewOption("List Books");
    };
    const handleBack = () => {
       setCurrentView("list");
-      setSelectViewOption("List Books");
    };
 
-   const handleViewChange = (value: string) => {
-      setSelectViewOption(value);
-      switch (value) {
-         case "List Books":
-            setCurrentView("list");
-            break;
-         case "Create Book":
-            setCurrentView("create");
-            break;
-         case "Edit Book":
-            if (selectedBook) {
-               setCurrentView("edit");
-            } else {
-               setSelectViewOption("List Books");
-            }
-            break;
-         case "View Book":
-            if (selectedBook) {
-               setCurrentView("view");
-            } else {
-               setSelectViewOption("List Books");
-            }
-            break;
-         default:
-            setCurrentView("list");
+   const handleViewChange = (label: string) => {
+      // Find the key ('list', 'create', etc.) from the label
+      const viewKey = Object.keys(viewLabels).find(
+         (key) => viewLabels[key as keyof typeof viewLabels] === label
+      ) as "list" | "create" | "edit" | "view";
+
+      if (viewKey === "edit" || viewKey === "view") {
+         if (selectedBook) {
+            setCurrentView(viewKey);
+         }
+      } else {
+         setCurrentView(viewKey);
       }
    };
 
@@ -210,16 +197,24 @@ export function BooksPage() {
                <div className="flex flex-col items-start gap-2">
                   <Label>View Options</Label>
                   <Select
-                     value={selectViewOption}
+                     value={viewLabels[currentView]}
                      onValueChange={handleViewChange}
                   >
                      <SelectTrigger className="w-[200px]">
-                        <SelectValue>{selectViewOption}</SelectValue>
+                        <SelectValue />
                      </SelectTrigger>
                      <SelectContent>
-                        {viewArray.map((view) => (
-                           <SelectItem key={view} value={view}>
-                              {view}
+                        {Object.values(viewLabels).map((label) => (
+                           <SelectItem
+                              key={label}
+                              value={label}
+                              disabled={
+                                 (label === "Edit Book" ||
+                                    label === "View Book") &&
+                                 !selectedBook
+                              }
+                           >
+                              {label}
                            </SelectItem>
                         ))}
                      </SelectContent>
