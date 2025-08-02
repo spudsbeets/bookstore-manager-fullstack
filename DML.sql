@@ -427,3 +427,79 @@ ORDER BY publisherName;
 SELECT salesRateID, CONCAT(county, ', ', state) as location, taxRate
 FROM SalesRateLocations
 ORDER BY state, county;
+
+
+
+SELECT
+    b.title,
+    g.genreName
+FROM
+    Books AS b
+JOIN
+    BookGenres AS bg ON b.bookID = bg.bookID
+JOIN
+    Genre AS a ON bg.genreID = g.genreID
+ORDER BY
+    b.title;
+
+DELETE FROM BookGenres WHERE bookGenreID = :bookGenreID_input;
+
+
+UPDATE BookAuthors SET genreID = :genreID_input, bookID = :bookID_input WHERE bookGenreID = :bookGenreID_to_update;
+
+
+SELECT b.title, b.bookID FROM Books b;
+Select g.genreName, g.genreID FROM Authors a;
+
+
+INSERT INTO BookGenres (genreID, bookID) VALUES (:genreID_input, :bookID_input);
+
+
+
+SELECT
+    b.title,
+    a.fullName
+FROM
+    Books AS b
+JOIN
+    BookAuthors AS ba ON b.bookID = ba.bookID
+JOIN
+    Authors AS a ON ba.authorID = a.authorID
+ORDER BY
+    b.title;
+
+DELETE FROM BookAuthors WHERE bookAuthorID = :bookAuthorID_input;
+
+
+UPDATE BookAuthors SET authorID = :authorID_input, bookID = :bookID_input WHERE bookAuthorID = :bookAuthorID_to_update;
+
+
+SELECT b.title, b.bookID FROM Books b;
+Select a.fullName, a.authorID FROM Authors a;
+
+
+INSERT INTO BookAuthors (authorID, bookID) VALUES (:authorID_input, :bookID_input);
+
+SELECT
+    s.slocName,
+    b.title
+FROM
+    Books AS b
+JOIN
+    BookLocations AS bl ON b.bookID = bl.bookID
+JOIN
+    SLOCS s ON bl.slocID = s.slocID
+ORDER BY
+    b.title;
+
+DELETE FROM BookLocations WHERE bookLocationID = :bookLocationID_input;
+
+
+UPDATE BookLocations SET bookID = :bookID_input, slocID = :slocID_input WHERE bookLocationID = :bookLocationID_to_update;
+
+
+SELECT s.slocName, s.slocID FROM SLOCS s;
+Select b.title, b.bookID FROM Books b;
+
+
+INSERT INTO BookLocations (bookID, slocID) VALUES (:bookID_input, :slocID_input);

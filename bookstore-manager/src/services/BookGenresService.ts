@@ -14,7 +14,10 @@ export const BookGenreSchema = z.object({
 
 export type BookGenre = z.infer<typeof BookGenreSchema>;
 
-export type CreateBookGenreDTO = Omit<BookGenre, "bookGenreID">;
+export type CreateBookGenreDTO = {
+   bookID: number;
+   genreID: number;
+};
 export type UpdateBookGenreDTO = Partial<CreateBookGenreDTO>;
 
 // -----------------------------
@@ -47,6 +50,14 @@ class BookGenresService {
 
    getByBookId(bookId: number): Promise<AxiosResponse<BookGenre[]>> {
       return http.get(`/book-genres/book/${bookId}`);
+   }
+
+   getBooksForDropdown(): Promise<AxiosResponse<any[]>> {
+      return http.get("/book-genres/books/dropdown");
+   }
+
+   getGenresForDropdown(): Promise<AxiosResponse<any[]>> {
+      return http.get("/book-genres/genres/dropdown");
    }
 }
 

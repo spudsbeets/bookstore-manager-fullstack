@@ -8,48 +8,13 @@ class BookGenresModel extends BaseModel {
 
    async create(data) {
       try {
-         // For BookGenres, we need to find the bookID and genreID from the title and genre names
-         const { title, genre } = data;
+         const { genreID, bookID } = data;
 
-         // Find the bookID by title
-         const [bookResult] = await pool.query(
-            "SELECT bookID FROM Books WHERE title = ?",
-            [title]
-         );
+         const query = `
+            INSERT INTO BookGenres (genreID, bookID) VALUES (?, ?);
+         `;
 
-         if (bookResult.length === 0) {
-            throw new Error(`Book with title '${title}' not found`);
-         }
-
-         const bookID = bookResult[0].bookID;
-
-         // Find the genreID by genre name
-         const [genreResult] = await pool.query(
-            "SELECT genreID FROM Genres WHERE genreName = ?",
-            [genre]
-         );
-
-         if (genreResult.length === 0) {
-            throw new Error(`Genre '${genre}' not found`);
-         }
-
-         const genreID = genreResult[0].genreID;
-
-         // Check if the relationship already exists
-         const [existingResult] = await pool.query(
-            "SELECT bookGenreID FROM BookGenres WHERE bookID = ? AND genreID = ?",
-            [bookID, genreID]
-         );
-
-         if (existingResult.length > 0) {
-            throw new Error(`Book genre relationship already exists`);
-         }
-
-         // Create the relationship
-         const [result] = await pool.query(
-            "INSERT INTO BookGenres (bookID, genreID) VALUES (?, ?)",
-            [bookID, genreID]
-         );
+         const [result] = await pool.query(query, [genreID, bookID]);
 
          // Return the created relationship with joined data
          const [newResult] = await pool.query(
@@ -70,64 +35,13 @@ class BookGenresModel extends BaseModel {
 
    async update(id, data) {
       try {
-         const { title, genre } = data;
+         const { genreID, bookID } = data;
 
-         // Find the current relationship
-         const [currentResult] = await pool.query(
-            "SELECT bookID, genreID FROM BookGenres WHERE bookGenreID = ?",
-            [id]
-         );
+         const query = `
+            UPDATE BookGenres SET genreID = ?, bookID = ? WHERE bookGenreID = ?;
+         `;
 
-         if (currentResult.length === 0) {
-            return null;
-         }
-
-         let bookID = currentResult[0].bookID;
-         let genreID = currentResult[0].genreID;
-
-         // Update bookID if title is provided
-         if (title) {
-            const [bookResult] = await pool.query(
-               "SELECT bookID FROM Books WHERE title = ?",
-               [title]
-            );
-
-            if (bookResult.length === 0) {
-               throw new Error(`Book with title '${title}' not found`);
-            }
-
-            bookID = bookResult[0].bookID;
-         }
-
-         // Update genreID if genre is provided
-         if (genre) {
-            const [genreResult] = await pool.query(
-               "SELECT genreID FROM Genres WHERE genreName = ?",
-               [genre]
-            );
-
-            if (genreResult.length === 0) {
-               throw new Error(`Genre '${genre}' not found`);
-            }
-
-            genreID = genreResult[0].genreID;
-         }
-
-         // Check if the new relationship already exists (excluding current)
-         const [existingResult] = await pool.query(
-            "SELECT bookGenreID FROM BookGenres WHERE bookID = ? AND genreID = ? AND bookGenreID != ?",
-            [bookID, genreID, id]
-         );
-
-         if (existingResult.length > 0) {
-            throw new Error(`Book genre relationship already exists`);
-         }
-
-         // Update the relationship
-         await pool.query(
-            "UPDATE BookGenres SET bookID = ?, genreID = ? WHERE bookGenreID = ?",
-            [bookID, genreID, id]
-         );
+         await pool.query(query, [genreID, bookID, id]);
 
          // Return the updated relationship with joined data
          const [updatedResult] = await pool.query(
@@ -148,10 +62,11 @@ class BookGenresModel extends BaseModel {
 
    async deleteById(id) {
       try {
-         const [result] = await pool.query(
-            "DELETE FROM BookGenres WHERE bookGenreID = ?",
-            [id]
-         );
+         const query = `
+            DELETE FROM BookGenres WHERE bookGenreID = ?;
+         `;
+
+         const [result] = await pool.query(query, [id]);
 
          return result.affectedRows > 0;
       } catch (error) {
@@ -199,16 +114,49 @@ class BookGenresModel extends BaseModel {
    async findAll() {
       try {
          const query = `
-        SELECT bg.bookGenreID, b.title, g.genreName AS genre
-        FROM BookGenres bg
-        INNER JOIN Books b ON bg.bookID = b.bookID
-        INNER JOIN Genres g ON bg.genreID = g.genreID
-        ORDER BY b.title, g.genreName
+        SELECT
+            bg.bookGenreID,
+            b.title,
+            g.genreName AS genre
+        FROM
+            Books AS b
+        JOIN
+            BookGenres AS bg ON b.bookID = bg.bookID
+        JOIN
+            Genres AS g ON bg.genreID = g.genreID
+        ORDER BY
+            b.title
       `;
          const [results] = await pool.query(query);
          return results;
       } catch (error) {
          console.error("Error finding all book genres:", error);
+         throw error;
+      }
+   }
+
+   async getBooksForDropdown() {
+      try {
+         const query = `
+        SELECT b.title, b.bookID FROM Books b;
+      `;
+         const [results] = await pool.query(query);
+         return results;
+      } catch (error) {
+         console.error("Error fetching books for dropdown:", error);
+         throw error;
+      }
+   }
+
+   async getGenresForDropdown() {
+      try {
+         const query = `
+        SELECT g.genreName, g.genreID FROM Genres g;
+      `;
+         const [results] = await pool.query(query);
+         return results;
+      } catch (error) {
+         console.error("Error fetching genres for dropdown:", error);
          throw error;
       }
    }

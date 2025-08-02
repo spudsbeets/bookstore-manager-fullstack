@@ -71,7 +71,12 @@ export function BookAuthorsList({
       const fetchBookAuthors = async () => {
          setIsLoading(true);
          try {
-            const response = await BookAuthorsService.getAll();
+            // If bookID is 0, get all book authors (for the main Book Authors page)
+            // If bookID is > 0, get only book authors for that specific book
+            const response =
+               bookID > 0
+                  ? await BookAuthorsService.getByBookId(bookID)
+                  : await BookAuthorsService.getAll();
             setBookAuthors(response.data);
          } catch (error) {
             console.error("Error fetching book authors:", error);
@@ -92,7 +97,7 @@ export function BookAuthorsList({
       (bookAuthor) =>
          bookAuthor.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          bookAuthor.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         bookAuthor.bookAuthorID.toString().includes(searchTerm)
+         bookAuthor.bookAuthorID?.toString().includes(searchTerm)
    );
 
    const handleDelete = async (bookAuthor: BookAuthor) => {

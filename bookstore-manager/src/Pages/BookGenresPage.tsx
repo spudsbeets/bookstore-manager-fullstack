@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BookGenresForm } from "@/components/forms/BookGenresForm";
 import { BookGenresList } from "@/components/list-views/BookGenresList";
@@ -20,9 +20,6 @@ import {
 import { Tags } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Import services for real data
-import BooksService from "@/services/BooksService";
-
 export function BookGenresPage() {
    const navigate = useNavigate();
    const [currentView, setCurrentView] = useState<
@@ -30,22 +27,6 @@ export function BookGenresPage() {
    >("list");
    const [selectedBookGenre, setSelectedBookGenre] = useState<any>(null);
    const [selectViewOption, setSelectViewOption] = useState("List Book Genres");
-   const [selectedBook, setSelectedBook] = useState<any>(null);
-   const [books, setBooks] = useState<any[]>([]);
-
-   // Fetch real data from API
-   useEffect(() => {
-      const fetchData = async () => {
-         try {
-            const booksResponse = await BooksService.getAll();
-            setBooks(booksResponse.data);
-         } catch (error) {
-            console.error("Error fetching books:", error);
-         }
-      };
-
-      fetchData();
-   }, []);
 
    // const handleCreate = () => {
    //    setCurrentView("create");
@@ -210,41 +191,11 @@ export function BookGenresPage() {
                         </CardDescription>
                      </CardHeader>
                      <CardContent>
-                        <div className="space-y-4">
-                           <div>
-                              <Label>Select Book</Label>
-                              <Select
-                                 value={selectedBook?.bookID?.toString() || ""}
-                                 onValueChange={(value) => {
-                                    const book = books.find(
-                                       (b) => b.bookID === Number(value)
-                                    );
-                                    setSelectedBook(book);
-                                 }}
-                              >
-                                 <SelectTrigger className="w-full mt-1">
-                                    <SelectValue placeholder="Choose a book..." />
-                                 </SelectTrigger>
-                                 <SelectContent>
-                                    {books.map((book) => (
-                                       <SelectItem
-                                          key={book.bookID}
-                                          value={book.bookID.toString()}
-                                       >
-                                          {book.title}
-                                       </SelectItem>
-                                    ))}
-                                 </SelectContent>
-                              </Select>
-                           </div>
-                           {selectedBook && (
-                              <BookGenresForm
-                                 mode="create"
-                                 bookID={selectedBook.bookID}
-                                 onSave={handleBookGenreSave}
-                              />
-                           )}
-                        </div>
+                        <BookGenresForm
+                           mode="create"
+                           bookID={0} // 0 means no specific book selected, form will handle book selection
+                           onSave={handleBookGenreSave}
+                        />
                      </CardContent>
                   </Card>
                </div>

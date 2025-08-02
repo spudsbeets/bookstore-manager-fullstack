@@ -27,8 +27,6 @@ import { toast } from "sonner";
 
 // Services
 import BookAuthorsService from "@/services/BookAuthorsService";
-import BooksService from "@/services/BooksService";
-import AuthorsService from "@/services/AuthorsService";
 
 // -----------------------------
 // ZOD SCHEMA & TYPES
@@ -36,7 +34,7 @@ import AuthorsService from "@/services/AuthorsService";
 
 const bookAuthorSchema = z.object({
    title: z.string().min(1, "Book title is required"),
-   author: z.string().min(1, "Author is required"),
+   author: z.string().min(1, "Author is required"), // This will be authorID as string
 });
 
 type BookAuthorFormData = z.infer<typeof bookAuthorSchema>;
@@ -62,13 +60,14 @@ export function BookAuthorsForm({
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
    const [currentBook, setCurrentBook] = useState<any | null>(null);
    const [authors, setAuthors] = useState<any[]>([]);
+   const [booksResult, setBooksResult] = useState<any>(null);
 
    const form = useForm<BookAuthorFormData>({
       resolver: zodResolver(bookAuthorSchema),
       defaultValues: initialData
          ? {
               title: initialData.title || "",
-              author: initialData.author || "",
+              author: initialData.author || "", // This will be author name in edit/view mode
            }
          : {
               title: "",
@@ -76,21 +75,43 @@ export function BookAuthorsForm({
            },
    });
 
+   // Update form values when initialData changes
+   useEffect(() => {
+      if (initialData) {
+         form.setValue("title", initialData.title || "");
+         // Don't set author here - it will be handled by the dropdown value logic
+      }
+   }, [initialData, form]);
+
    useEffect(() => {
       const fetchData = async () => {
          try {
-            // Fetch book details
-            const bookResult = await BooksService.get(bookID);
-            setCurrentBook(bookResult.data);
+            // Fetch books and authors for dropdowns
+            const [booksResponse, authorsResult] = await Promise.all([
+               BookAuthorsService.getBooksForDropdown(),
+               BookAuthorsService.getAuthorsForDropdown(),
+            ]);
 
-            // Fetch authors for selection
-            const authorsResult = await AuthorsService.getAll();
-            setAuthors(authorsResult.data);
+            setBooksResult(booksResponse);
 
-            // Set default title from book
-            if (!initialData) {
-               form.setValue("title", bookResult.data.title);
+            // Set current book if bookID is provided
+            if (bookID > 0) {
+               const currentBook = booksResponse.data.find(
+                  (book) => book.bookID === bookID
+               );
+               setCurrentBook(currentBook);
+
+               // For edit mode, use the initialData values
+               if (initialData) {
+                  form.setValue("title", initialData.title || "");
+                  // Don't set author here - it will be handled by the dropdown value logic
+               } else if (currentBook) {
+                  // For create mode, use the current book
+                  form.setValue("title", currentBook.title);
+               }
             }
+
+            setAuthors(authorsResult.data);
          } catch (error) {
             console.error("Error fetching data:", error);
             toast.error("Failed to load form data", {
@@ -107,17 +128,29 @@ export function BookAuthorsForm({
    const onSubmit = async (data: BookAuthorFormData) => {
       setIsSubmitting(true);
       try {
+         // Find the selected author's name for display
+         const selectedAuthor = authors.find(
+            (author) => author.authorID.toString() === data.author
+         );
+         const authorName = selectedAuthor?.fullName || data.author;
+
          if (mode === "create") {
             // Create new book-author relationship
-            await BookAuthorsService.create(data);
+            await BookAuthorsService.create({
+               bookID: bookID,
+               authorID: parseInt(data.author), // Convert string authorID to number
+            });
             toast.success("Book author relationship created successfully!", {
-               description: `${data.author} has been added to ${data.title}.`,
+               description: `${authorName} has been added to ${data.title}.`,
             });
          } else if (mode === "edit" && initialData?.bookAuthorID) {
             // Update existing book-author relationship
-            await BookAuthorsService.update(initialData.bookAuthorID, data);
+            await BookAuthorsService.update(initialData.bookAuthorID, {
+               bookID: bookID,
+               authorID: parseInt(data.author), // Convert string authorID to number
+            });
             toast.success("Book author relationship updated successfully!", {
-               description: `${data.author} has been updated for ${data.title}.`,
+               description: `${authorName} has been updated for ${data.title}.`,
             });
          }
 
@@ -202,48 +235,116 @@ export function BookAuthorsForm({
                      onSubmit={form.handleSubmit(onSubmit)}
                      className="space-y-6"
                   >
-                     {/* Book Information (Read-only) */}
-                     <div className="space-y-2">
-                        <Label>Book</Label>
-                        <div className="p-3 bg-muted rounded-md">
-                           <div className="font-medium">
-                              {currentBook?.title}
-                           </div>
-                           <div className="text-sm text-muted-foreground">
-                              ID: {bookID} | ISBN: {currentBook?.["isbn-10"]}
+                     {/* Book Selection (Create and Edit modes) */}
+                     {(mode === "create" || mode === "edit") &&
+                        booksResult?.data && (
+                           <FormField
+                              control={form.control}
+                              name="title"
+                              render={() => (
+                                 <FormItem>
+                                    <FormLabel>Book</FormLabel>
+                                    <FormControl>
+                                       <SearchableSelect
+                                          options={
+                                             booksResult.data.map(
+                                                (book: any) => ({
+                                                   value: book.bookID.toString(),
+                                                   label: book.title,
+                                                })
+                                             ) || []
+                                          }
+                                          value={
+                                             initialData?.title
+                                                ? booksResult?.data
+                                                     ?.find(
+                                                        (book: any) =>
+                                                           book.title ===
+                                                           initialData.title
+                                                     )
+                                                     ?.bookID?.toString() ||
+                                                  bookID?.toString() ||
+                                                  ""
+                                                : bookID?.toString() || ""
+                                          }
+                                          onValueChange={(value) => {
+                                             // Update the bookID when a different book is selected
+                                             const newBookID = parseInt(value);
+                                             if (newBookID !== bookID) {
+                                                // This would need to be handled by the parent component
+                                                // For now, we'll keep the current bookID
+                                             }
+                                          }}
+                                          placeholder="Select a book"
+                                          searchPlaceholder="Search books..."
+                                          emptyMessage="No books found."
+                                          disabled={false}
+                                       />
+                                    </FormControl>
+                                    <FormMessage />
+                                 </FormItem>
+                              )}
+                           />
+                        )}
+
+                     {/* Book Information (View mode only) */}
+                     {mode === "view" && (
+                        <div className="space-y-2">
+                           <Label>Book</Label>
+                           <div className="p-3 bg-muted rounded-md">
+                              <div className="font-medium">
+                                 {currentBook?.title}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                 ID: {bookID} | ISBN: {currentBook?.["isbn-10"]}
+                              </div>
                            </div>
                         </div>
-                     </div>
-
-                     {/* Author Selection (Create mode only) */}
-                     {mode === "create" && (
-                        <FormField
-                           control={form.control}
-                           name="author"
-                           render={({ field }) => (
-                              <FormItem>
-                                 <FormLabel>Author</FormLabel>
-                                 <FormControl>
-                                    <SearchableSelect
-                                       options={authors.map((author) => ({
-                                          value: author.fullName,
-                                          label: author.fullName,
-                                       }))}
-                                       value={field.value}
-                                       onValueChange={field.onChange}
-                                       placeholder="Select an author"
-                                       searchPlaceholder="Search authors..."
-                                       emptyMessage="No authors found."
-                                    />
-                                 </FormControl>
-                                 <FormMessage />
-                              </FormItem>
-                           )}
-                        />
                      )}
 
-                     {/* Display Author (Edit/View modes) */}
-                     {(mode === "edit" || mode === "view") && (
+                     {/* Author Selection (Create and Edit modes) */}
+                     {(mode === "create" || mode === "edit") &&
+                        authors.length > 0 && (
+                           <FormField
+                              control={form.control}
+                              name="author"
+                              render={({ field }) => (
+                                 <FormItem>
+                                    <FormLabel>Author</FormLabel>
+                                    <FormControl>
+                                       <SearchableSelect
+                                          options={authors.map((author) => ({
+                                             value: author.authorID.toString(),
+                                             label: author.fullName,
+                                          }))}
+                                          value={
+                                             field.value ||
+                                             (initialData?.author
+                                                ? authors
+                                                     .find(
+                                                        (author) =>
+                                                           author.fullName ===
+                                                           initialData.author
+                                                     )
+                                                     ?.authorID?.toString() ||
+                                                  ""
+                                                : "")
+                                          }
+                                          onValueChange={field.onChange}
+                                          placeholder="Select an author"
+                                          searchPlaceholder="Search authors..."
+                                          emptyMessage="No authors found."
+                                          disabled={false}
+                                       />
+                                    </FormControl>
+                                    <FormMessage />
+                                 </FormItem>
+                              )}
+                           />
+                        )}
+
+                     {/* Display Author (View mode only) */}
+                     {mode === "view" && (
                         <FormField
                            control={form.control}
                            name="author"
@@ -253,7 +354,7 @@ export function BookAuthorsForm({
                                  <FormControl>
                                     <Input
                                        {...field}
-                                       disabled={mode === "view"}
+                                       disabled={true}
                                        placeholder="Author name"
                                     />
                                  </FormControl>

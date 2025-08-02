@@ -72,7 +72,12 @@ export function BookGenresList({
       const fetchBookGenres = async () => {
          setIsLoading(true);
          try {
-            const response = await BookGenresService.getAll();
+            // If bookID is 0, get all book genres (for the main Book Genres page)
+            // If bookID is > 0, get only book genres for that specific book
+            const response =
+               bookID > 0
+                  ? await BookGenresService.getByBookId(bookID)
+                  : await BookGenresService.getAll();
             setBookGenres(response.data);
          } catch (error) {
             console.error("Error fetching book genres:", error);

@@ -27,8 +27,6 @@ import { toast } from "sonner";
 
 // Services
 import BookGenresService from "@/services/BookGenresService";
-import BooksService from "@/services/BooksService";
-import GenresService from "@/services/GenresService";
 
 // -----------------------------
 // ZOD SCHEMA & TYPES
@@ -62,6 +60,7 @@ export function BookGenresForm({
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
    const [currentBook, setCurrentBook] = useState<any | null>(null);
    const [genres, setGenres] = useState<any[]>([]);
+   const [booksResult, setBooksResult] = useState<any>(null);
 
    const form = useForm<BookGenreFormData>({
       resolver: zodResolver(bookGenreSchema),
@@ -76,21 +75,51 @@ export function BookGenresForm({
            },
    });
 
+   // Update form values when initialData changes
+   useEffect(() => {
+      if (initialData) {
+         form.setValue("title", initialData.title || "");
+         form.setValue("genre", initialData.genre || "");
+      }
+   }, [initialData, form]);
+
+   // Update form values when initialData changes (for edit mode)
+   useEffect(() => {
+      if (initialData && (mode === "edit" || mode === "view")) {
+         form.setValue("title", initialData.title || "");
+         form.setValue("genre", initialData.genre || "");
+      }
+   }, [initialData, mode, form]);
+
    useEffect(() => {
       const fetchData = async () => {
          try {
-            // Fetch book details
-            const bookResult = await BooksService.get(bookID);
-            setCurrentBook(bookResult.data);
+            // Fetch books and genres for dropdowns
+            const [booksResponse, genresResult] = await Promise.all([
+               BookGenresService.getBooksForDropdown(),
+               BookGenresService.getGenresForDropdown(),
+            ]);
 
-            // Fetch genres for selection
-            const genresResult = await GenresService.getAll();
-            setGenres(genresResult.data);
+            setBooksResult(booksResponse);
 
-            // Set default title from book
-            if (!initialData) {
-               form.setValue("title", bookResult.data.title);
+            // Set current book if bookID is provided
+            if (bookID > 0) {
+               const currentBook = booksResponse.data.find(
+                  (book) => book.bookID === bookID
+               );
+               setCurrentBook(currentBook);
+
+               // For edit mode, use the initialData values
+               if (initialData) {
+                  form.setValue("title", initialData.title || "");
+                  form.setValue("genre", initialData.genre || "");
+               } else if (currentBook) {
+                  // For create mode, use the current book
+                  form.setValue("title", currentBook.title);
+               }
             }
+
+            setGenres(genresResult.data);
          } catch (error) {
             console.error("Error fetching data:", error);
             toast.error("Failed to load form data", {
@@ -107,17 +136,29 @@ export function BookGenresForm({
    const onSubmit = async (data: BookGenreFormData) => {
       setIsSubmitting(true);
       try {
+         // Find the selected genre's name for display
+         const selectedGenre = genres.find(
+            (genre) => genre.genreID.toString() === data.genre
+         );
+         const genreName = selectedGenre?.genreName || data.genre;
+
          if (mode === "create") {
             // Create new book-genre relationship
-            await BookGenresService.create(data);
+            await BookGenresService.create({
+               bookID: bookID,
+               genreID: parseInt(data.genre), // Convert string genreID to number
+            });
             toast.success("Book genre relationship created successfully!", {
-               description: `${data.genre} has been added to ${data.title}.`,
+               description: `${genreName} has been added to ${data.title}.`,
             });
          } else if (mode === "edit" && initialData?.bookGenreID) {
             // Update existing book-genre relationship
-            await BookGenresService.update(initialData.bookGenreID, data);
+            await BookGenresService.update(initialData.bookGenreID, {
+               bookID: bookID,
+               genreID: parseInt(data.genre), // Convert string genreID to number
+            });
             toast.success("Book genre relationship updated successfully!", {
-               description: `${data.genre} has been updated for ${data.title}.`,
+               description: `${genreName} has been updated for ${data.title}.`,
             });
          }
 
@@ -180,6 +221,30 @@ export function BookGenresForm({
       );
    }
 
+   // Don't render form if data isn't loaded yet
+   if (!booksResult?.data || genres.length === 0) {
+      return (
+         <div className="max-w-2xl mx-auto space-y-6">
+            <Card>
+               <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                     <Tag className="h-5 w-5" />
+                     Loading Data...
+                  </CardTitle>
+                  <CardDescription>
+                     Please wait while we load the form data...
+                  </CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <div className="flex items-center justify-center py-8">
+                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+               </CardContent>
+            </Card>
+         </div>
+      );
+   }
+
    return (
       <div className="max-w-2xl mx-auto space-y-6">
          <Card>
@@ -202,48 +267,115 @@ export function BookGenresForm({
                      onSubmit={form.handleSubmit(onSubmit)}
                      className="space-y-6"
                   >
-                     {/* Book Information (Read-only) */}
-                     <div className="space-y-2">
-                        <Label>Book</Label>
-                        <div className="p-3 bg-muted rounded-md">
-                           <div className="font-medium">
-                              {currentBook?.title}
-                           </div>
-                           <div className="text-sm text-muted-foreground">
-                              ID: {bookID} | ISBN: {currentBook?.["isbn-10"]}
+                     {/* Book Selection (Create and Edit modes) */}
+                     {(mode === "create" || mode === "edit") &&
+                        booksResult?.data && (
+                           <FormField
+                              control={form.control}
+                              name="title"
+                              render={() => (
+                                 <FormItem>
+                                    <FormLabel>Book</FormLabel>
+                                    <FormControl>
+                                       <SearchableSelect
+                                          options={
+                                             booksResult.data.map(
+                                                (book: any) => ({
+                                                   value: book.bookID.toString(),
+                                                   label: book.title,
+                                                })
+                                             ) || []
+                                          }
+                                          value={
+                                             initialData?.title
+                                                ? booksResult?.data
+                                                     ?.find(
+                                                        (book: any) =>
+                                                           book.title ===
+                                                           initialData.title
+                                                     )
+                                                     ?.bookID?.toString() ||
+                                                  bookID?.toString() ||
+                                                  ""
+                                                : bookID?.toString() || ""
+                                          }
+                                          onValueChange={(value) => {
+                                             // Update the bookID when a different book is selected
+                                             const newBookID = parseInt(value);
+                                             if (newBookID !== bookID) {
+                                                // This would need to be handled by the parent component
+                                                // For now, we'll keep the current bookID
+                                             }
+                                          }}
+                                          placeholder="Select a book"
+                                          searchPlaceholder="Search books..."
+                                          emptyMessage="No books found."
+                                          disabled={false}
+                                       />
+                                    </FormControl>
+                                    <FormMessage />
+                                 </FormItem>
+                              )}
+                           />
+                        )}
+
+                     {/* Book Information (View mode only) */}
+                     {mode === "view" && (
+                        <div className="space-y-2">
+                           <Label>Book</Label>
+                           <div className="p-3 bg-muted rounded-md">
+                              <div className="font-medium">
+                                 {currentBook?.title}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                 ID: {bookID} | ISBN: {currentBook?.["isbn-10"]}
+                              </div>
                            </div>
                         </div>
-                     </div>
-
-                     {/* Genre Selection (Create mode only) */}
-                     {mode === "create" && (
-                        <FormField
-                           control={form.control}
-                           name="genre"
-                           render={({ field }) => (
-                              <FormItem>
-                                 <FormLabel>Genre</FormLabel>
-                                 <FormControl>
-                                    <SearchableSelect
-                                       options={genres.map((genre) => ({
-                                          value: genre.genreName,
-                                          label: genre.genreName,
-                                       }))}
-                                       value={field.value}
-                                       onValueChange={field.onChange}
-                                       placeholder="Select a genre"
-                                       searchPlaceholder="Search genres..."
-                                       emptyMessage="No genres found."
-                                    />
-                                 </FormControl>
-                                 <FormMessage />
-                              </FormItem>
-                           )}
-                        />
                      )}
 
-                     {/* Display Genre (Edit/View modes) */}
-                     {(mode === "edit" || mode === "view") && (
+                     {/* Genre Selection (Create and Edit modes) */}
+                     {(mode === "create" || mode === "edit") &&
+                        genres.length > 0 && (
+                           <FormField
+                              control={form.control}
+                              name="genre"
+                              render={({ field }) => (
+                                 <FormItem>
+                                    <FormLabel>Genre</FormLabel>
+                                    <FormControl>
+                                       <SearchableSelect
+                                          options={genres.map((genre) => ({
+                                             value: genre.genreID.toString(),
+                                             label: genre.genreName,
+                                          }))}
+                                          value={
+                                             field.value ||
+                                             (initialData?.genre
+                                                ? genres
+                                                     .find(
+                                                        (genre) =>
+                                                           genre.genreName ===
+                                                           initialData.genre
+                                                     )
+                                                     ?.genreID?.toString() || ""
+                                                : "")
+                                          }
+                                          onValueChange={field.onChange}
+                                          placeholder="Select a genre"
+                                          searchPlaceholder="Search genres..."
+                                          emptyMessage="No genres found."
+                                          disabled={false}
+                                       />
+                                    </FormControl>
+                                    <FormMessage />
+                                 </FormItem>
+                              )}
+                           />
+                        )}
+
+                     {/* Display Genre (View mode only) */}
+                     {mode === "view" && (
                         <FormField
                            control={form.control}
                            name="genre"
@@ -253,7 +385,7 @@ export function BookGenresForm({
                                  <FormControl>
                                     <Input
                                        {...field}
-                                       disabled={mode === "view"}
+                                       disabled={true}
                                        placeholder="Genre name"
                                     />
                                  </FormControl>
