@@ -19,7 +19,15 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Eye, Edit, Trash2, Package, Loader2 } from "lucide-react";
+import {
+   Search,
+   Plus,
+   Eye,
+   Edit,
+   Trash2,
+   Package,
+   Loader2,
+} from "lucide-react";
 import {
    HoverCard,
    HoverCardContent,
@@ -42,7 +50,8 @@ interface OrderItem {
    orderID: number;
    bookID: number;
    quantity: number;
-   price: number;
+   individualPrice: number;
+   subtotal: number;
    title: string;
    orderDate: string;
    firstName: string;
@@ -51,6 +60,7 @@ interface OrderItem {
 
 interface OrderItemsListProps {
    orderID: number;
+   refreshKey?: number; // Add refresh key prop
    onView?: (orderItem: OrderItem) => void;
    onEdit?: (orderItem: OrderItem) => void;
    onDelete?: (orderItem: OrderItem) => void;
@@ -60,6 +70,7 @@ interface OrderItemsListProps {
 
 export function OrderItemsList({
    orderID,
+   refreshKey,
    onView,
    onEdit,
    onDelete,
@@ -85,7 +96,8 @@ export function OrderItemsList({
                orderID: item.orderID,
                bookID: item.bookID,
                quantity: item.quantity,
-               price: item.price,
+               individualPrice: parseFloat(item.individualPrice),
+               subtotal: parseFloat(item.subtotal),
                title: item.title,
                orderDate: item.orderDate,
                firstName: item.firstName,
@@ -95,7 +107,8 @@ export function OrderItemsList({
          } catch (error) {
             console.error("Error fetching order items:", error);
             toast.error("Failed to load order items", {
-               description: "There was an error loading the order items. Please try again.",
+               description:
+                  "There was an error loading the order items. Please try again.",
                duration: Infinity,
             });
          } finally {
@@ -104,12 +117,14 @@ export function OrderItemsList({
       };
 
       fetchOrderItems();
-   }, [orderID]);
+   }, [orderID, refreshKey]);
 
    const filteredOrderItems = orderItems.filter(
       (orderItem) =>
          orderItem.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         orderItem.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         orderItem.firstName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
          orderItem.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          orderItem.orderItemID.toString().includes(searchTerm)
    );
@@ -119,9 +134,7 @@ export function OrderItemsList({
       try {
          await OrderItemsService.remove(orderItem.orderItemID);
          setOrderItems(
-            orderItems.filter(
-               (oi) => oi.orderItemID !== orderItem.orderItemID
-            )
+            orderItems.filter((oi) => oi.orderItemID !== orderItem.orderItemID)
          );
          toast.success("Order item deleted successfully!", {
             description: `${orderItem.title} has been removed from the order.`,
@@ -132,7 +145,8 @@ export function OrderItemsList({
       } catch (error) {
          console.error("Error deleting order item:", error);
          toast.error("Failed to delete order item", {
-            description: "There was an error deleting the order item. Please try again.",
+            description:
+               "There was an error deleting the order item. Please try again.",
             duration: Infinity,
          });
       } finally {
@@ -232,7 +246,10 @@ export function OrderItemsList({
                      <TableBody>
                         {filteredOrderItems.length === 0 ? (
                            <TableRow>
-                              <TableCell colSpan={6} className="text-center py-8">
+                              <TableCell
+                                 colSpan={6}
+                                 className="text-center py-8"
+                              >
                                  <div className="text-muted-foreground">
                                     {searchTerm
                                        ? "No order items found matching your search."
@@ -258,7 +275,8 @@ export function OrderItemsList({
                                                    {orderItem.title}
                                                 </h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                   Order Item ID: {orderItem.orderItemID}
+                                                   Order Item ID:{" "}
+                                                   {orderItem.orderItemID}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                    Order ID: {orderItem.orderID}
@@ -279,9 +297,19 @@ export function OrderItemsList({
                                        {orderItem.quantity}
                                     </Badge>
                                  </TableCell>
-                                 <TableCell>${orderItem.price}</TableCell>
                                  <TableCell>
-                                    {new Date(orderItem.orderDate).toLocaleDateString()}
+                                    $
+                                    {typeof orderItem.individualPrice ===
+                                    "number"
+                                       ? orderItem.individualPrice.toFixed(2)
+                                       : parseFloat(
+                                            orderItem.individualPrice
+                                         ).toFixed(2)}
+                                 </TableCell>
+                                 <TableCell>
+                                    {new Date(
+                                       orderItem.orderDate
+                                    ).toLocaleDateString()}
                                  </TableCell>
                                  <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -291,7 +319,9 @@ export function OrderItemsList({
                                                 <Button
                                                    variant="ghost"
                                                    size="sm"
-                                                   onClick={() => onView(orderItem)}
+                                                   onClick={() =>
+                                                      onView(orderItem)
+                                                   }
                                                 >
                                                    <Eye className="h-4 w-4" />
                                                 </Button>
@@ -307,7 +337,9 @@ export function OrderItemsList({
                                                 <Button
                                                    variant="ghost"
                                                    size="sm"
-                                                   onClick={() => onEdit(orderItem)}
+                                                   onClick={() =>
+                                                      onEdit(orderItem)
+                                                   }
                                                 >
                                                    <Edit className="h-4 w-4" />
                                                 </Button>
@@ -323,7 +355,9 @@ export function OrderItemsList({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() =>
-                                                   setOrderItemToDelete(orderItem)
+                                                   setOrderItemToDelete(
+                                                      orderItem
+                                                   )
                                                 }
                                                 className="text-destructive hover:text-destructive"
                                              >
@@ -359,4 +393,3 @@ export function OrderItemsList({
       </TooltipProvider>
    );
 }
-

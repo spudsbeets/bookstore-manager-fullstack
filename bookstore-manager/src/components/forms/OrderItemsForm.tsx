@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,9 +24,11 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
+import { CheckCircle, Edit, Eye, Trash2, Loader2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "sonner";
 import OrderItemsService from "@/services/OrderItemsService";
+import BooksService from "@/services/BooksService";
 
 // Enhanced schema with input sanitization
 const orderItemSchema = z.object({
@@ -39,39 +41,6 @@ const orderItemSchema = z.object({
 });
 
 type OrderItemFormValues = z.infer<typeof orderItemSchema>;
-
-// Sample books data for dropdown
-const sampleBooks: Array<{
-   bookID: number;
-   title: string;
-   individualPrice: number;
-   inventoryQty: number;
-}> = [
-   {
-      bookID: 1,
-      title: "Inherent Vice",
-      individualPrice: 15.99,
-      inventoryQty: 5,
-   },
-   {
-      bookID: 2,
-      title: "Beloved",
-      individualPrice: 17.99,
-      inventoryQty: 7,
-   },
-   {
-      bookID: 3,
-      title: "The Talisman",
-      individualPrice: 18.99,
-      inventoryQty: 6,
-   },
-   {
-      bookID: 4,
-      title: "Good Omens",
-      individualPrice: 16.99,
-      inventoryQty: 8,
-   },
-];
 
 interface OrderItemsFormProps {
    mode: "create" | "edit" | "view";
@@ -92,10 +61,12 @@ export function OrderItemsForm({
    const [showSuccess, setShowSuccess] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
+   const [isLoading, setIsLoading] = useState(true);
+   const [books, setBooks] = useState<any[]>([]);
 
    const form = useForm<OrderItemFormValues>({
       resolver: zodResolver(orderItemSchema),
-      defaultValues: initialData || {
+      defaultValues: {
          orderID: orderID,
          bookID: 0,
          quantity: 1,
@@ -104,6 +75,59 @@ export function OrderItemsForm({
       },
    });
 
+   // Update form values when initialData changes
+   useEffect(() => {
+      if (initialData && books.length > 0) {
+         form.setValue("orderItemID", initialData.orderItemID || 0);
+         form.setValue("bookID", initialData.bookID || 0);
+         form.setValue("quantity", initialData.quantity || 1);
+
+         const price =
+            typeof initialData.individualPrice === "string"
+               ? parseFloat(initialData.individualPrice)
+               : initialData.individualPrice || 0;
+         form.setValue("individualPrice", price);
+
+         const subtotal =
+            typeof initialData.subtotal === "string"
+               ? parseFloat(initialData.subtotal)
+               : initialData.subtotal || 0;
+         form.setValue("subtotal", subtotal);
+      }
+   }, [initialData, books, form]);
+
+   // Auto-calculate subtotal whenever quantity or price changes
+   useEffect(() => {
+      const subscription = form.watch((_, { name }) => {
+         if (name === "quantity" || name === "individualPrice") {
+            const quantity = form.getValues("quantity") || 0;
+            const price = form.getValues("individualPrice") || 0;
+            const subtotal = quantity * price;
+            form.setValue("subtotal", subtotal);
+         }
+      });
+      return () => subscription.unsubscribe();
+   }, [form]);
+
+   useEffect(() => {
+      const fetchBooks = async () => {
+         try {
+            setIsLoading(true);
+            const booksResponse = await BooksService.getAll();
+            setBooks(booksResponse.data);
+         } catch (error) {
+            console.error("Error fetching books:", error);
+            toast.error("Failed to load books", {
+               description: "Please refresh the page and try again.",
+            });
+         } finally {
+            setIsLoading(false);
+         }
+      };
+
+      fetchBooks();
+   }, []);
+
    const isCreateMode = mode === "create";
    const isEditMode = mode === "edit";
    const isViewMode = mode === "view";
@@ -111,22 +135,41 @@ export function OrderItemsForm({
    async function onSubmit(data: OrderItemFormValues) {
       setIsSubmitting(true);
       try {
+         // Ensure subtotal is calculated correctly before submission
+         const calculatedSubtotal = data.quantity * data.individualPrice;
+         const submissionData = {
+            ...data,
+            subtotal: calculatedSubtotal,
+         };
+
          if (isCreateMode) {
             // Create new order item
-            await OrderItemsService.create(data);
+            await OrderItemsService.create(submissionData);
+            toast.success("Order item created successfully!", {
+               description: "The order item has been added to the order.",
+            });
          } else if (isEditMode && initialData?.orderItemID) {
             // Update existing order item
-            await OrderItemsService.update(initialData.orderItemID, data);
+            await OrderItemsService.update(
+               initialData.orderItemID,
+               submissionData
+            );
+            toast.success("Order item updated successfully!", {
+               description: "The order item has been updated.",
+            });
          }
 
          if (onSave) {
-            onSave(data);
+            onSave(submissionData);
          }
          setShowSuccess(true);
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving order item:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to save order item", {
+            description:
+               "There was an error saving the order item. Please try again.",
+         });
       } finally {
          setIsSubmitting(false);
       }
@@ -137,13 +180,19 @@ export function OrderItemsForm({
       try {
          if (initialData?.orderItemID) {
             await OrderItemsService.remove(initialData.orderItemID);
+            toast.success("Order item deleted successfully!", {
+               description: "The order item has been removed from the order.",
+            });
          }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting order item:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to delete order item", {
+            description:
+               "There was an error deleting the order item. Please try again.",
+         });
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -175,6 +224,25 @@ export function OrderItemsForm({
             return "";
       }
    };
+
+   if (isLoading) {
+      return (
+         <Card>
+            <CardHeader>
+               <CardTitle className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Loading...
+               </CardTitle>
+               <CardDescription>Loading books data...</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+               </div>
+            </CardContent>
+         </Card>
+      );
+   }
 
    return (
       <Card>
@@ -258,17 +326,45 @@ export function OrderItemsForm({
                            <FormLabel>Book</FormLabel>
                            <FormControl>
                               <SearchableSelect
-                                 options={sampleBooks.map((book) => ({
+                                 options={books.map((book) => ({
                                     value: book.bookID.toString(),
-                                    label: `${book.title} - $${book.individualPrice}`,
+                                    label: `${book.title} - $${
+                                       typeof book.price === "number"
+                                          ? book.price.toFixed(2)
+                                          : parseFloat(book.price).toFixed(2)
+                                    }`,
                                  }))}
-                                 value={field.value?.toString()}
-                                 onValueChange={(value) =>
-                                    field.onChange(Number(value))
-                                 }
+                                 value={field.value?.toString() || ""}
+                                 onValueChange={(value) => {
+                                    const bookID = Number(value);
+                                    field.onChange(bookID);
+
+                                    // Auto-populate price when book is selected
+                                    const selectedBook = books.find(
+                                       (book) => book.bookID === bookID
+                                    );
+                                    if (selectedBook) {
+                                       const bookPrice =
+                                          typeof selectedBook.price === "string"
+                                             ? parseFloat(selectedBook.price)
+                                             : selectedBook.price;
+                                       form.setValue(
+                                          "individualPrice",
+                                          bookPrice
+                                       );
+                                       // Recalculate subtotal
+                                       const quantity =
+                                          form.getValues("quantity");
+                                       form.setValue(
+                                          "subtotal",
+                                          bookPrice * quantity
+                                       );
+                                    }
+                                 }}
                                  placeholder="Select a book"
                                  searchPlaceholder="Search books..."
                                  emptyMessage="No books found."
+                                 disabled={isViewMode}
                               />
                            </FormControl>
                            <FormDescription>
@@ -299,10 +395,18 @@ export function OrderItemsForm({
                                           value === "" ||
                                           /^\d+$/.test(value)
                                        ) {
-                                          field.onChange(
+                                          const quantity =
                                              value === ""
                                                 ? 0
-                                                : parseInt(value) || 0
+                                                : parseInt(value) || 0;
+                                          field.onChange(quantity);
+
+                                          // Recalculate subtotal when quantity changes
+                                          const price =
+                                             form.getValues("individualPrice");
+                                          form.setValue(
+                                             "subtotal",
+                                             price * quantity
                                           );
                                        }
                                     }}
@@ -322,22 +426,57 @@ export function OrderItemsForm({
                               <FormLabel>Price per Unit</FormLabel>
                               <FormControl>
                                  <Input
-                                    type="text"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
                                     inputMode="decimal"
                                     placeholder="0.00"
-                                    value={field.value || ""}
+                                    value={
+                                       field.value
+                                          ? typeof field.value === "number"
+                                             ? field.value.toFixed(2)
+                                             : parseFloat(field.value).toFixed(
+                                                  2
+                                               )
+                                          : "0.00"
+                                    }
                                     onChange={(e) => {
                                        const value = e.target.value;
+                                       // Allow decimal input with more permissive regex
                                        if (
                                           value === "" ||
-                                          /^\d*\.?\d*$/.test(value)
+                                          /^\d*\.?\d{0,2}$/.test(value) ||
+                                          value === "."
                                        ) {
-                                          field.onChange(
-                                             value === ""
+                                          const price =
+                                             value === "" || value === "."
                                                 ? 0
-                                                : parseFloat(value) || 0
+                                                : parseFloat(value) || 0;
+                                          field.onChange(price);
+
+                                          // Recalculate subtotal when price changes
+                                          const quantity =
+                                             form.getValues("quantity");
+                                          form.setValue(
+                                             "subtotal",
+                                             price * quantity
                                           );
                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                       // Allow decimal point, backspace, delete, arrow keys, etc.
+                                       if (
+                                          e.key === "." ||
+                                          e.key === "Backspace" ||
+                                          e.key === "Delete" ||
+                                          e.key === "ArrowLeft" ||
+                                          e.key === "ArrowRight" ||
+                                          e.key === "Tab" ||
+                                          /^\d$/.test(e.key)
+                                       ) {
+                                          return;
+                                       }
+                                       e.preventDefault();
                                     }}
                                     disabled={isViewMode}
                                  />
@@ -360,25 +499,20 @@ export function OrderItemsForm({
                                  type="text"
                                  inputMode="decimal"
                                  placeholder="0.00"
-                                 value={field.value || ""}
-                                 onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (
-                                       value === "" ||
-                                       /^\d*\.?\d*$/.test(value)
-                                    ) {
-                                       field.onChange(
-                                          value === ""
-                                             ? 0
-                                             : parseFloat(value) || 0
-                                       );
-                                    }
-                                 }}
-                                 disabled={isViewMode}
+                                 value={
+                                    field.value
+                                       ? typeof field.value === "number"
+                                          ? field.value.toFixed(2)
+                                          : parseFloat(field.value).toFixed(2)
+                                       : "0.00"
+                                 }
+                                 disabled={true}
+                                 className="bg-muted"
                               />
                            </FormControl>
                            <FormDescription>
-                              Total for this item (quantity × price)
+                              Total for this item (quantity × price) -
+                              calculated automatically
                            </FormDescription>
                            <FormMessage />
                         </FormItem>

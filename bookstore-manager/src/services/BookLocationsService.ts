@@ -8,15 +8,24 @@ import type { AxiosResponse } from "axios";
 
 export const BookLocationSchema = z.object({
    bookLocationID: z.number(),
+   slocName: z.string(),
    title: z.string(),
-   location: z.string(),
    quantity: z.number().min(0),
 });
 
 export type BookLocation = z.infer<typeof BookLocationSchema>;
 
-export type CreateBookLocationDTO = Omit<BookLocation, "bookLocationID">;
-export type UpdateBookLocationDTO = Partial<CreateBookLocationDTO>;
+export type CreateBookLocationDTO = {
+   bookID: number;
+   slocID: number;
+   quantity: number;
+};
+
+export type UpdateBookLocationDTO = {
+   bookID: number;
+   slocID: number;
+   quantity: number;
+};
 
 // -----------------------------
 // SERVICE CLASS
@@ -44,6 +53,16 @@ class BookLocationsService {
 
    remove(id: number): Promise<AxiosResponse<void>> {
       return http.delete(`/book-locations/${id}`);
+   }
+
+   // Get all locations for dropdown
+   getLocations(): Promise<AxiosResponse<any[]>> {
+      return http.get("/locations");
+   }
+
+   // Get all books for dropdown
+   getBooks(): Promise<AxiosResponse<any[]>> {
+      return http.get("/books");
    }
 }
 

@@ -226,6 +226,7 @@ export function OrdersPage() {
                            {orderItemView === "list" && (
                               <OrderItemsList
                                  orderID={selectedOrder.orderID}
+                                 refreshKey={0}
                                  onDelete={handleOrderItemDelete}
                                  onAdd={handleAddOrderItem}
                                  onEdit={handleEditOrderItem}

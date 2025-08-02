@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BookLocationsForm } from "@/components/forms/BookLocationsForm";
 import { BookLocationsList } from "@/components/list-views/BookLocationsList";
@@ -9,7 +9,6 @@ import {
    SelectTrigger,
    SelectValue,
 } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Label } from "@/components/ui/label";
 import {
    Card,
@@ -21,9 +20,6 @@ import {
 import { MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Import services for real data
-import BooksService from "@/services/BooksService";
-
 export function BookLocationsPage() {
    const navigate = useNavigate();
    const [currentView, setCurrentView] = useState<
@@ -33,52 +29,6 @@ export function BookLocationsPage() {
    const [selectViewOption, setSelectViewOption] = useState(
       "List Book Locations"
    );
-   const [selectedBook, setSelectedBook] = useState<any>(null);
-   const [books, setBooks] = useState<any[]>([]);
-
-   // Fetch real data from API
-   useEffect(() => {
-      const fetchData = async () => {
-         try {
-            const booksResponse = await BooksService.getAll();
-            setBooks(booksResponse.data);
-         } catch (error) {
-            console.error("Error fetching books:", error);
-         }
-      };
-
-      fetchData();
-   }, []);
-
-   // const handleCreate = () => {
-   //    setCurrentView("create");
-   //    setSelectViewOption("Create Book Location");
-   //    setSelectedBookLocation(null);
-   // };
-
-   // const handleEdit = (bookLocation: any) => {
-   //    setSelectedBookLocation(bookLocation);
-   //    setCurrentView("edit");
-   //    setSelectViewOption("Edit Book Location");
-   // };
-
-   // const handleView = (bookLocation: any) => {
-   //    setSelectedBookLocation(bookLocation);
-   //    setCurrentView("view");
-   //    setSelectViewOption("View Book Location");
-   // };
-
-   // const handleDelete = () => {
-   //    console.log("Delete operation");
-   //    setCurrentView("list");
-   //    setSelectViewOption("List Book Locations");
-   // };
-
-   // const handleSave = (data: any) => {
-   //    console.log("Save operation:", data);
-   //    setCurrentView("list");
-   //    setSelectViewOption("List Book Locations");
-   // };
 
    const handleBack = () => {
       setCurrentView("list");
@@ -147,12 +97,6 @@ export function BookLocationsPage() {
       setSelectedBookLocation(null);
    };
 
-   // const handleBookLocationBack = () => {
-   //    setCurrentView("list");
-   //    setSelectViewOption("List Book Locations");
-   //    setSelectedBookLocation(null);
-   // };
-
    return (
       <div className="p-8">
          <div className="max-w-7xl mx-auto">
@@ -213,34 +157,11 @@ export function BookLocationsPage() {
                         </CardDescription>
                      </CardHeader>
                      <CardContent>
-                        <div className="space-y-4">
-                           <div>
-                              <Label>Select Book</Label>
-                              <SearchableSelect
-                                 options={books.map((book) => ({
-                                    value: book.bookID.toString(),
-                                    label: book.title,
-                                 }))}
-                                 value={selectedBook?.bookID?.toString()}
-                                 onValueChange={(value) => {
-                                    const book = books.find(
-                                       (b) => b.bookID === Number(value)
-                                    );
-                                    setSelectedBook(book);
-                                 }}
-                                 placeholder="Choose a book..."
-                                 searchPlaceholder="Search books..."
-                                 emptyMessage="No books found."
-                              />
-                           </div>
-                           {selectedBook && (
-                              <BookLocationsForm
-                                 mode="create"
-                                 bookID={selectedBook.bookID}
-                                 onSave={handleBookLocationSave}
-                              />
-                           )}
-                        </div>
+                        <BookLocationsForm
+                           mode="create"
+                           bookID={0} // 0 means no specific book selected, form will handle book selection
+                           onSave={handleBookLocationSave}
+                        />
                      </CardContent>
                   </Card>
                </div>

@@ -8,41 +8,41 @@ class OrderItemsModel extends BaseModel {
 
    async create(data) {
       try {
-         const { orderID, bookID, quantity, price } = data;
-         
+         const { orderID, bookID, quantity, individualPrice } = data;
+
          // Validate that the order exists
          const [orderResult] = await pool.query(
             "SELECT orderID FROM Orders WHERE orderID = ?",
             [orderID]
          );
-         
+
          if (orderResult.length === 0) {
             throw new Error(`Order with ID ${orderID} not found`);
          }
-         
+
          // Validate that the book exists
          const [bookResult] = await pool.query(
             "SELECT bookID FROM Books WHERE bookID = ?",
             [bookID]
          );
-         
+
          if (bookResult.length === 0) {
             throw new Error(`Book with ID ${bookID} not found`);
          }
-         
+
          // Calculate individual price and subtotal
-         const individualPrice = price;
-         const subtotal = quantity * individualPrice;
-         
+         const price = individualPrice;
+         const subtotal = quantity * price;
+
          // Create the order item
          const [result] = await pool.query(
             "INSERT INTO OrderItems (orderID, bookID, quantity, individualPrice, subtotal) VALUES (?, ?, ?, ?, ?)",
-            [orderID, bookID, quantity, individualPrice, subtotal]
+            [orderID, bookID, quantity, price, subtotal]
          );
-         
+
          // Return the created order item with joined data
          const [newResult] = await pool.query(
-            `SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice as price,
+            `SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice, oi.subtotal,
                     b.title, o.orderDate, c.firstName, c.lastName
              FROM OrderItems oi
              INNER JOIN Books b ON oi.bookID = b.bookID
@@ -51,7 +51,7 @@ class OrderItemsModel extends BaseModel {
              WHERE oi.orderItemID = ?`,
             [result.insertId]
          );
-         
+
          return newResult[0];
       } catch (error) {
          console.error("Error creating order item:", error);
@@ -61,73 +61,80 @@ class OrderItemsModel extends BaseModel {
 
    async update(id, data) {
       try {
-         const { orderID, bookID, quantity, price } = data;
-         
+         const { orderID, bookID, quantity, individualPrice } = data;
+
          // Find the current order item
          const [currentResult] = await pool.query(
             "SELECT orderID, bookID, quantity, individualPrice FROM OrderItems WHERE orderItemID = ?",
             [id]
          );
-         
+
          if (currentResult.length === 0) {
             return null;
          }
-         
+
          let newOrderID = currentResult[0].orderID;
          let newBookID = currentResult[0].bookID;
          let newQuantity = currentResult[0].quantity;
          let newIndividualPrice = currentResult[0].individualPrice;
-         
+
          // Update orderID if provided
          if (orderID !== undefined) {
             const [orderResult] = await pool.query(
                "SELECT orderID FROM Orders WHERE orderID = ?",
                [orderID]
             );
-            
+
             if (orderResult.length === 0) {
                throw new Error(`Order with ID ${orderID} not found`);
             }
-            
+
             newOrderID = orderID;
          }
-         
+
          // Update bookID if provided
          if (bookID !== undefined) {
             const [bookResult] = await pool.query(
                "SELECT bookID FROM Books WHERE bookID = ?",
                [bookID]
             );
-            
+
             if (bookResult.length === 0) {
                throw new Error(`Book with ID ${bookID} not found`);
             }
-            
+
             newBookID = bookID;
          }
-         
+
          // Update quantity if provided
          if (quantity !== undefined) {
             newQuantity = quantity;
          }
-         
+
          // Update individualPrice if provided
-         if (price !== undefined) {
-            newIndividualPrice = price;
+         if (individualPrice !== undefined) {
+            newIndividualPrice = individualPrice;
          }
-         
+
          // Calculate new subtotal
          const subtotal = newQuantity * newIndividualPrice;
-         
+
          // Update the order item
          await pool.query(
             "UPDATE OrderItems SET orderID = ?, bookID = ?, quantity = ?, individualPrice = ?, subtotal = ? WHERE orderItemID = ?",
-            [newOrderID, newBookID, newQuantity, newIndividualPrice, subtotal, id]
+            [
+               newOrderID,
+               newBookID,
+               newQuantity,
+               newIndividualPrice,
+               subtotal,
+               id,
+            ]
          );
-         
+
          // Return the updated order item with joined data
          const [updatedResult] = await pool.query(
-            `SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice as price,
+            `SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice, oi.subtotal,
                     b.title, o.orderDate, c.firstName, c.lastName
              FROM OrderItems oi
              INNER JOIN Books b ON oi.bookID = b.bookID
@@ -136,7 +143,7 @@ class OrderItemsModel extends BaseModel {
              WHERE oi.orderItemID = ?`,
             [id]
          );
-         
+
          return updatedResult[0];
       } catch (error) {
          console.error("Error updating order item:", error);
@@ -150,7 +157,7 @@ class OrderItemsModel extends BaseModel {
             "DELETE FROM OrderItems WHERE orderItemID = ?",
             [id]
          );
-         
+
          return result.affectedRows > 0;
       } catch (error) {
          console.error("Error deleting order item:", error);
@@ -161,7 +168,7 @@ class OrderItemsModel extends BaseModel {
    async findByOrderId(orderId) {
       try {
          const query = `
-        SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice as price,
+        SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice, oi.subtotal,
                b.title, o.orderDate, c.firstName, c.lastName
         FROM OrderItems oi
         INNER JOIN Books b ON oi.bookID = b.bookID
@@ -181,7 +188,7 @@ class OrderItemsModel extends BaseModel {
    async findAll() {
       try {
          const query = `
-        SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice as price,
+        SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice, oi.subtotal,
                b.title, o.orderDate, c.firstName, c.lastName
         FROM OrderItems oi
         INNER JOIN Books b ON oi.bookID = b.bookID
@@ -200,7 +207,7 @@ class OrderItemsModel extends BaseModel {
    async findById(id) {
       try {
          const query = `
-        SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice as price,
+        SELECT oi.orderItemID, oi.orderID, oi.bookID, oi.quantity, oi.individualPrice, oi.subtotal,
                b.title, o.orderDate, c.firstName, c.lastName
         FROM OrderItems oi
         INNER JOIN Books b ON oi.bookID = b.bookID

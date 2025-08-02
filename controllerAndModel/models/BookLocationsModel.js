@@ -8,32 +8,7 @@ class BookLocationsModel extends BaseModel {
 
    async create(data) {
       try {
-         // For BookLocations, we need to find the bookID and slocID from the title and location names
-         const { title, location, quantity } = data;
-
-         // Find the bookID by title
-         const [bookResult] = await pool.query(
-            "SELECT bookID FROM Books WHERE title = ?",
-            [title]
-         );
-
-         if (bookResult.length === 0) {
-            throw new Error(`Book with title '${title}' not found`);
-         }
-
-         const bookID = bookResult[0].bookID;
-
-         // Find the slocID by location name
-         const [locationResult] = await pool.query(
-            "SELECT slocID FROM SLOCS WHERE slocName = ?",
-            [location]
-         );
-
-         if (locationResult.length === 0) {
-            throw new Error(`Location '${location}' not found`);
-         }
-
-         const slocID = locationResult[0].slocID;
+         const { bookID, slocID, quantity } = data;
 
          // Check if the relationship already exists
          const [existingResult] = await pool.query(
@@ -53,7 +28,7 @@ class BookLocationsModel extends BaseModel {
 
          // Return the created relationship with joined data
          const [newResult] = await pool.query(
-            `SELECT bl.bookLocationID, b.title, s.slocName AS location, bl.quantity
+            `SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
              FROM BookLocations bl
              INNER JOIN Books b ON bl.bookID = b.bookID
              INNER JOIN SLOCS s ON bl.slocID = s.slocID
@@ -70,54 +45,7 @@ class BookLocationsModel extends BaseModel {
 
    async update(id, data) {
       try {
-         const { title, location, quantity } = data;
-
-         // Find the current relationship
-         const [currentResult] = await pool.query(
-            "SELECT bookID, slocID, quantity FROM BookLocations WHERE bookLocationID = ?",
-            [id]
-         );
-
-         if (currentResult.length === 0) {
-            return null;
-         }
-
-         let bookID = currentResult[0].bookID;
-         let slocID = currentResult[0].slocID;
-         let newQuantity = currentResult[0].quantity;
-
-         // Update bookID if title is provided
-         if (title) {
-            const [bookResult] = await pool.query(
-               "SELECT bookID FROM Books WHERE title = ?",
-               [title]
-            );
-
-            if (bookResult.length === 0) {
-               throw new Error(`Book with title '${title}' not found`);
-            }
-
-            bookID = bookResult[0].bookID;
-         }
-
-         // Update slocID if location is provided
-         if (location) {
-            const [locationResult] = await pool.query(
-               "SELECT slocID FROM SLOCS WHERE slocName = ?",
-               [location]
-            );
-
-            if (locationResult.length === 0) {
-               throw new Error(`Location '${location}' not found`);
-            }
-
-            slocID = locationResult[0].slocID;
-         }
-
-         // Update quantity if provided
-         if (quantity !== undefined) {
-            newQuantity = quantity;
-         }
+         const { bookID, slocID, quantity } = data;
 
          // Check if the new relationship already exists (excluding current)
          const [existingResult] = await pool.query(
@@ -132,12 +60,12 @@ class BookLocationsModel extends BaseModel {
          // Update the relationship
          await pool.query(
             "UPDATE BookLocations SET bookID = ?, slocID = ?, quantity = ? WHERE bookLocationID = ?",
-            [bookID, slocID, newQuantity, id]
+            [bookID, slocID, quantity, id]
          );
 
          // Return the updated relationship with joined data
          const [updatedResult] = await pool.query(
-            `SELECT bl.bookLocationID, b.title, s.slocName AS location, bl.quantity
+            `SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
              FROM BookLocations bl
              INNER JOIN Books b ON bl.bookID = b.bookID
              INNER JOIN SLOCS s ON bl.slocID = s.slocID
@@ -169,7 +97,7 @@ class BookLocationsModel extends BaseModel {
    async findByBookId(bookId) {
       try {
          const query = `
-        SELECT bl.bookLocationID, b.title, s.slocName AS location, bl.quantity
+        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
         FROM BookLocations bl
         INNER JOIN Books b ON bl.bookID = b.bookID
         INNER JOIN SLOCS s ON bl.slocID = s.slocID
@@ -187,7 +115,7 @@ class BookLocationsModel extends BaseModel {
    async findByLocationId(locationId) {
       try {
          const query = `
-        SELECT bl.bookLocationID, b.title, s.slocName AS location, bl.quantity
+        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
         FROM BookLocations bl
         INNER JOIN Books b ON bl.bookID = b.bookID
         INNER JOIN SLOCS s ON bl.slocID = s.slocID
@@ -205,11 +133,11 @@ class BookLocationsModel extends BaseModel {
    async findAll() {
       try {
          const query = `
-        SELECT bl.bookLocationID, b.title, s.slocName AS location, bl.quantity
+        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
         FROM BookLocations bl
         INNER JOIN Books b ON bl.bookID = b.bookID
         INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        ORDER BY b.title, s.slocName
+        ORDER BY b.title
       `;
          const [results] = await pool.query(query);
          return results;

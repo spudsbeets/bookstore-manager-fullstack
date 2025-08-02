@@ -33,8 +33,8 @@ import BookLocationsService from "@/services/BookLocationsService";
 
 interface BookLocation {
    bookLocationID: number;
+   slocName: string;
    title: string;
-   location: string;
    quantity: number;
 }
 
@@ -85,7 +85,7 @@ export function BookLocationsList({
 
    const filteredBookLocations = bookLocations.filter(
       (bookLocation) =>
-         bookLocation.location
+         bookLocation.slocName
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
          bookLocation.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,7 +102,7 @@ export function BookLocationsList({
             )
          );
          toast.success("Book location relationship deleted successfully!", {
-            description: `${bookLocation.location} has been removed from ${bookLocation.title}.`,
+            description: `${bookLocation.slocName} has been removed from ${bookLocation.title}.`,
          });
          if (onDelete) {
             onDelete(bookLocation);
@@ -143,7 +143,7 @@ export function BookLocationsList({
                   <div>
                      <CardTitle>Book Locations</CardTitle>
                      <CardDescription>
-                        Storage locations for this book ({bookLocations.length}{" "}
+                        Storage locations for books ({bookLocations.length}{" "}
                         total)
                      </CardDescription>
                   </div>
@@ -160,7 +160,7 @@ export function BookLocationsList({
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Add a new location to this book</p>
+                              <p>Add a new location to a book</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -224,7 +224,7 @@ export function BookLocationsList({
                                  <TableCell>
                                     <div className="flex items-center gap-2">
                                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                                       {bookLocation.location}
+                                       {bookLocation.slocName}
                                     </div>
                                  </TableCell>
                                  <TableCell>{bookLocation.title}</TableCell>
@@ -304,7 +304,7 @@ export function BookLocationsList({
                   bookLocationToDelete && handleDelete(bookLocationToDelete)
                }
                isDeleting={isDeleting}
-               itemName={bookLocationToDelete?.location || ""}
+               itemName={bookLocationToDelete?.slocName || ""}
                itemType="book location"
             />
          </Card>

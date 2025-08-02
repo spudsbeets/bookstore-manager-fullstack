@@ -32,6 +32,7 @@ export function OrderItemsPage() {
    const [selectViewOption, setSelectViewOption] = useState("List Order Items");
    const [selectedOrder, setSelectedOrder] = useState<any>(null);
    const [orders, setOrders] = useState<any[]>([]);
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for list updates
 
    // Fetch real data from API
    useEffect(() => {
@@ -142,6 +143,7 @@ export function OrderItemsPage() {
       setCurrentView("list");
       setSelectViewOption("List Order Items");
       setSelectedOrderItem(null);
+      setRefreshKey((prev) => prev + 1); // Refresh the list
    };
 
    // const handleOrderItemBack = () => {
@@ -275,7 +277,7 @@ export function OrderItemsPage() {
 
             {/* List View */}
             {currentView === "list" && (
-               <Card>
+               <Card key={refreshKey}>
                   <CardHeader>
                      <CardTitle className="flex items-center gap-2">
                         <Package className="h-5 w-5" />
@@ -298,6 +300,7 @@ export function OrderItemsPage() {
                         </div>
                         <OrderItemsList
                            orderID={0} // 0 means show all
+                           refreshKey={refreshKey}
                            onDelete={handleOrderItemDelete}
                            onAdd={handleAddOrderItem}
                            onEdit={handleEditOrderItem}
