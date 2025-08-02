@@ -29,9 +29,8 @@ import SalesRateLocationsService from "@/services/SalesRateLocationsService";
 
 const salesRateLocationSchema = z.object({
    salesRateID: z.number().optional(),
-   county: z.string().min(1, "County is required"),
-   state: z.string().min(1, "State is required"),
-   taxRate: z.number().min(0, "Tax rate must be positive"),
+   location: z.string().min(1, "Location is required"),
+   taxRate: z.string().min(1, "Tax rate is required"),
 });
 
 type SalesRateLocationFormValues = z.infer<typeof salesRateLocationSchema>;
@@ -57,9 +56,8 @@ export function SalesRateLocationsForm({
    const form = useForm<SalesRateLocationFormValues>({
       resolver: zodResolver(salesRateLocationSchema),
       defaultValues: initialData || {
-         county: "",
-         state: "",
-         taxRate: 0,
+         location: "",
+         taxRate: "",
       },
    });
 
@@ -189,44 +187,24 @@ export function SalesRateLocationsForm({
                      />
                   )}
 
-                  {/* Location Fields */}
-                  <div className="grid grid-cols-2 gap-4">
-                     <FormField
-                        control={form.control}
-                        name="county"
-                        render={({ field }) => (
-                           <FormItem>
-                              <FormLabel>County</FormLabel>
-                              <FormControl>
-                                 <Input
-                                    placeholder="Enter county name"
-                                    {...field}
-                                    disabled={isViewMode}
-                                 />
-                              </FormControl>
-                              <FormMessage />
-                           </FormItem>
-                        )}
-                     />
-
-                     <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                           <FormItem>
-                              <FormLabel>State</FormLabel>
-                              <FormControl>
-                                 <Input
-                                    placeholder="Enter state name"
-                                    {...field}
-                                    disabled={isViewMode}
-                                 />
-                              </FormControl>
-                              <FormMessage />
-                           </FormItem>
-                        )}
-                     />
-                  </div>
+                  {/* Location Field */}
+                  <FormField
+                     control={form.control}
+                     name="location"
+                     render={({ field }) => (
+                        <FormItem>
+                           <FormLabel>Location</FormLabel>
+                           <FormControl>
+                              <Input
+                                 placeholder="Enter location (e.g., County, State)"
+                                 {...field}
+                                 disabled={isViewMode}
+                              />
+                           </FormControl>
+                           <FormMessage />
+                        </FormItem>
+                     )}
+                  />
 
                   {/* Tax Rate */}
                   <FormField
@@ -240,21 +218,7 @@ export function SalesRateLocationsForm({
                                  type="text"
                                  inputMode="decimal"
                                  placeholder="0.00"
-                                 value={field.value || ""}
-                                 onChange={(e) => {
-                                    const value = e.target.value;
-                                    // Only allow numbers and one decimal point
-                                    if (
-                                       value === "" ||
-                                       /^\d*\.?\d*$/.test(value)
-                                    ) {
-                                       field.onChange(
-                                          value === ""
-                                             ? 0
-                                             : parseFloat(value) || 0
-                                       );
-                                    }
-                                 }}
+                                 {...field}
                                  disabled={isViewMode}
                               />
                            </FormControl>
@@ -299,7 +263,7 @@ export function SalesRateLocationsForm({
             onOpenChange={setShowDeleteDialog}
             onConfirm={handleDelete}
             isDeleting={isDeleting}
-            itemName={`${initialData?.county}, ${initialData?.state}` || ""}
+            itemName={initialData?.location || ""}
             itemType="sales rate location"
          />
       </Card>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { OrderItemsForm } from "@/components/forms/OrderItemsForm";
 import { OrderItemsList } from "@/components/list-views/OrderItemsList";
@@ -20,49 +20,8 @@ import {
 import { Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Sample data for demonstration
-const sampleOrders = [
-   {
-      orderID: 1,
-      orderDate: "2025-10-01",
-      orderTime: "21:12:11",
-      total: 45.61,
-      taxRate: 4.2,
-      customerID: 1,
-      salesRateID: 1,
-   },
-   {
-      orderID: 2,
-      orderDate: "2025-10-01",
-      orderTime: "21:12:11",
-      total: 61.21,
-      taxRate: 5.1,
-      customerID: 2,
-      salesRateID: 2,
-   },
-];
-
-// @ts-ignore - Demo data for UI
-const sampleOrderItems = [
-   {
-      orderItemID: 1,
-      orderID: 1,
-      bookID: 1,
-      quantity: 2,
-      individualPrice: 17.99,
-      subtotal: 35.98,
-      bookTitle: "Beloved",
-   },
-   {
-      orderItemID: 2,
-      orderID: 2,
-      bookID: 2,
-      quantity: 1,
-      individualPrice: 15.99,
-      subtotal: 15.99,
-      bookTitle: "Inherent Vice",
-   },
-];
+// Import services for real data
+import OrdersService from "@/services/OrdersService";
 
 export function OrderItemsPage() {
    const navigate = useNavigate();
@@ -72,6 +31,21 @@ export function OrderItemsPage() {
    const [selectedOrderItem, setSelectedOrderItem] = useState<any>(null);
    const [selectViewOption, setSelectViewOption] = useState("List Order Items");
    const [selectedOrder, setSelectedOrder] = useState<any>(null);
+   const [orders, setOrders] = useState<any[]>([]);
+
+   // Fetch real data from API
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const ordersResponse = await OrdersService.getAll();
+            setOrders(ordersResponse.data);
+         } catch (error) {
+            console.error("Error fetching orders:", error);
+         }
+      };
+
+      fetchData();
+   }, []);
 
    // const handleCreate = () => {
    //    setCurrentView("create");
@@ -241,7 +215,7 @@ export function OrderItemsPage() {
                               <Label>Select Order</Label>
                               <Select
                                  onValueChange={(value) => {
-                                    const order = sampleOrders.find(
+                                    const order = orders.find(
                                        (o) => o.orderID === Number(value)
                                     );
                                     setSelectedOrder(order);
@@ -251,7 +225,7 @@ export function OrderItemsPage() {
                                     <SelectValue placeholder="Choose an order..." />
                                  </SelectTrigger>
                                  <SelectContent>
-                                    {sampleOrders.map((order) => (
+                                    {orders.map((order) => (
                                        <SelectItem
                                           key={order.orderID}
                                           value={order.orderID.toString()}

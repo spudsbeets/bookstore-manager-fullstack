@@ -17,6 +17,7 @@ interface Location {
 }
 
 export function LocationsPage() {
+   console.log("LocationsPage rendered");
    const [currentView, setCurrentView] = useState<
       "list" | "create" | "edit" | "view"
    >("list");
@@ -115,13 +116,16 @@ export function LocationsPage() {
             </div>
 
             {currentView === "list" && (
-               <LocationsList
-                  key={refreshKey}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onAdd={handleCreate}
-               />
+               <>
+                  {console.log("Rendering LocationsList")}
+                  <LocationsList
+                     key={refreshKey}
+                     onView={handleView}
+                     onEdit={handleEdit}
+                     onDelete={handleDelete}
+                     onAdd={handleCreate}
+                  />
+               </>
             )}
 
             {currentView === "create" && (

@@ -1,6 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+   Card,
+   CardContent,
+   CardDescription,
+   CardHeader,
+   CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,15 +18,7 @@ import {
    TableHeader,
    TableRow,
 } from "@/components/ui/table";
-import {
-   Card,
-   CardContent,
-   CardDescription,
-   CardHeader,
-   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Eye, Edit, Trash2, Tags } from "lucide-react";
+
 import {
    HoverCard,
    HoverCardContent,
@@ -32,13 +31,16 @@ import {
    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { Tag, Eye, Edit, Trash2, Plus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+// Services
+import BookGenresService from "@/services/BookGenresService";
 
 interface BookGenre {
    bookGenreID: number;
-   bookID: number;
-   genreID: number;
-   genreName?: string; // For display purposes
-   bookTitle?: string; // For display purposes
+   title: string;
+   genre: string;
 }
 
 interface BookGenresListProps {
@@ -59,40 +61,26 @@ export function BookGenresList({
    onCreateGenre,
 }: BookGenresListProps) {
    const [bookGenres, setBookGenres] = useState<BookGenre[]>([]);
-   const [searchTerm, setSearchTerm] = useState("");
    const [isLoading, setIsLoading] = useState(true);
+   const [searchTerm, setSearchTerm] = useState("");
    const [bookGenreToDelete, setBookGenreToDelete] = useState<BookGenre | null>(
       null
    );
    const [isDeleting, setIsDeleting] = useState(false);
 
-   // Sample data for book genres
-   const sampleBookGenres: BookGenre[] = [
-      {
-         bookGenreID: 1,
-         bookID: bookID,
-         genreID: 1,
-         genreName: "Postmodern Fiction",
-         bookTitle: "Beloved",
-      },
-      {
-         bookGenreID: 2,
-         bookID: bookID,
-         genreID: 2,
-         genreName: "Historical Fiction",
-         bookTitle: "Beloved",
-      },
-   ];
-
    useEffect(() => {
       const fetchBookGenres = async () => {
          setIsLoading(true);
          try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setBookGenres(sampleBookGenres);
+            const response = await BookGenresService.getAll();
+            setBookGenres(response.data);
          } catch (error) {
             console.error("Error fetching book genres:", error);
+            toast.error("Failed to load book genres", {
+               description:
+                  "There was an error loading the book genres. Please try again.",
+               duration: Infinity,
+            });
          } finally {
             setIsLoading(false);
          }
@@ -103,25 +91,31 @@ export function BookGenresList({
 
    const filteredBookGenres = bookGenres.filter(
       (bookGenre) =>
-         bookGenre.genreName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+         bookGenre.genre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         bookGenre.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          bookGenre.bookGenreID.toString().includes(searchTerm)
    );
 
    const handleDelete = async (bookGenre: BookGenre) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await BookGenresService.remove(bookGenre.bookGenreID);
          setBookGenres(
             bookGenres.filter((bg) => bg.bookGenreID !== bookGenre.bookGenreID)
          );
+         toast.success("Book genre relationship deleted successfully!", {
+            description: `${bookGenre.genre} has been removed from ${bookGenre.title}.`,
+         });
          if (onDelete) {
             onDelete(bookGenre);
          }
       } catch (error) {
          console.error("Error deleting book genre:", error);
+         toast.error("Failed to delete book genre relationship", {
+            description:
+               "There was an error deleting the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsDeleting(false);
          setBookGenreToDelete(null);
@@ -135,8 +129,8 @@ export function BookGenresList({
                <CardTitle>Book Genres</CardTitle>
             </CardHeader>
             <CardContent>
-               <div className="text-center py-8 text-muted-foreground">
-                  Loading book genres...
+               <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                </div>
             </CardContent>
          </Card>
@@ -167,7 +161,7 @@ export function BookGenresList({
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Add an existing genre to this book</p>
+                              <p>Add a new genre to this book</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -179,12 +173,12 @@ export function BookGenresList({
                                  variant="outline"
                                  className="flex items-center gap-2"
                               >
-                                 <Plus className="h-4 w-4" />
+                                 <Tag className="h-4 w-4" />
                                  Add Genre
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Create a new genre record</p>
+                              <p>Create a new genre</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -192,25 +186,19 @@ export function BookGenresList({
                </div>
             </CardHeader>
             <CardContent>
-               {/* Search Bar */}
-               <div className="flex items-center space-x-2 mb-4">
-                  <div className="relative flex-1">
-                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+               <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
                      <Input
-                        placeholder="Search genres..."
+                        placeholder="Search book genres..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
+                        className="max-w-sm"
                      />
                   </div>
-               </div>
 
-               {/* Book Genres Table */}
-               <div className="rounded-md border">
                   <Table>
                      <TableHeader>
                         <TableRow>
-                           <TableHead>ID</TableHead>
                            <TableHead>Genre</TableHead>
                            <TableHead>Book</TableHead>
                            <TableHead className="text-right">Actions</TableHead>
@@ -220,11 +208,13 @@ export function BookGenresList({
                         {filteredBookGenres.length === 0 ? (
                            <TableRow>
                               <TableCell
-                                 colSpan={4}
+                                 colSpan={3}
                                  className="text-center py-8"
                               >
                                  <div className="text-muted-foreground">
-                                    No genres found for this book.
+                                    {searchTerm
+                                       ? "No book genres found matching your search."
+                                       : "No book genres found."}
                                  </div>
                               </TableCell>
                            </TableRow>
@@ -232,26 +222,21 @@ export function BookGenresList({
                            filteredBookGenres.map((bookGenre) => (
                               <TableRow key={bookGenre.bookGenreID}>
                                  <TableCell>
-                                    <Badge variant="secondary">
-                                       #{bookGenre.bookGenreID}
-                                    </Badge>
-                                 </TableCell>
-                                 <TableCell className="font-medium">
                                     <HoverCard>
                                        <HoverCardTrigger asChild>
                                           <div className="flex items-center gap-2 cursor-pointer">
-                                             <Tags className="h-4 w-4 text-muted-foreground" />
-                                             {bookGenre.genreName}
+                                             <Tag className="h-4 w-4 text-muted-foreground" />
+                                             {bookGenre.genre}
                                           </div>
                                        </HoverCardTrigger>
                                        <HoverCardContent className="w-80">
                                           <div className="flex justify-between space-x-4">
                                              <div className="space-y-1">
                                                 <h4 className="text-sm font-semibold">
-                                                   {bookGenre.genreName}
+                                                   {bookGenre.genre}
                                                 </h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                   Genre ID: {bookGenre.genreID}
+                                                   Book: {bookGenre.title}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                    Book Genre ID:{" "}
@@ -262,7 +247,7 @@ export function BookGenresList({
                                        </HoverCardContent>
                                     </HoverCard>
                                  </TableCell>
-                                 <TableCell>{bookGenre.bookTitle}</TableCell>
+                                 <TableCell>{bookGenre.title}</TableCell>
                                  <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
                                        {onView && (
@@ -338,7 +323,7 @@ export function BookGenresList({
                   bookGenreToDelete && handleDelete(bookGenreToDelete)
                }
                isDeleting={isDeleting}
-               itemName={bookGenreToDelete?.genreName || ""}
+               itemName={bookGenreToDelete?.genre || ""}
                itemType="book genre"
             />
          </Card>

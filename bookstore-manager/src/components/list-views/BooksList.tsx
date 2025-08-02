@@ -28,7 +28,6 @@ import {
    BookOpen,
    MoreHorizontal,
    Settings,
-   Filter,
 } from "lucide-react";
 import {
    DropdownMenu,
@@ -40,6 +39,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import BooksService, { type Book } from "@/services/BooksService";
+import BookAuthorsService from "@/services/BookAuthorsService";
+import BookGenresService from "@/services/BookGenresService";
 
 // Use the actual Book type from the API
 type BookDisplay = Book;
@@ -147,14 +148,48 @@ export function BooksList({
    const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
    const [sortColumn, setSortColumn] = useState<keyof BookDisplay | null>(null);
    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+   const [bookAuthors, setBookAuthors] = useState<{ [bookId: number]: any[] }>(
+      {}
+   );
+   const [bookGenres, setBookGenres] = useState<{ [bookId: number]: any[] }>(
+      {}
+   );
 
    useEffect(() => {
       const fetchBooks = async () => {
          setIsLoading(true);
          try {
-                     const response = await BooksService.getAll();
-         console.log("Books API response:", response.data);
-         setBooks(response.data);
+            const response = await BooksService.getAll();
+            console.log("Books API response:", response.data);
+            setBooks(response.data);
+
+            // Fetch book authors and genres for each book
+            const authorsMap: { [bookId: number]: any[] } = {};
+            const genresMap: { [bookId: number]: any[] } = {};
+
+            for (const book of response.data) {
+               try {
+                  const authorsResponse = await BookAuthorsService.getByBookId(
+                     book.bookID
+                  );
+                  authorsMap[book.bookID] = authorsResponse.data;
+
+                  const genresResponse = await BookGenresService.getByBookId(
+                     book.bookID
+                  );
+                  genresMap[book.bookID] = genresResponse.data;
+               } catch (error) {
+                  console.error(
+                     `Error fetching relationships for book ${book.bookID}:`,
+                     error
+                  );
+                  authorsMap[book.bookID] = [];
+                  genresMap[book.bookID] = [];
+               }
+            }
+
+            setBookAuthors(authorsMap);
+            setBookGenres(genresMap);
          } catch (error) {
             console.error("Error fetching books:", error);
          } finally {
@@ -249,20 +284,53 @@ export function BooksList({
             );
 
          case "inventoryQty":
+            const qty = value as number;
             return (
-               <Badge variant={value > 0 ? "default" : "secondary"}>
-                  {value > 0 ? "In Stock" : "Out of Stock"}
+               <Badge variant={qty > 0 ? "default" : "secondary"}>
+                  {qty > 0 ? "In Stock" : "Out of Stock"}
                </Badge>
             );
 
          case "authors":
-         case "genres":
-            return value ? (
-               <div className="max-w-xs truncate" title={value as string}>
-                  {value}
+            const authors = bookAuthors[book.bookID] || [];
+            if (authors.length === 0) {
+               return <span className="text-muted-foreground">—</span>;
+            }
+
+            return (
+               <div className="flex flex-wrap gap-1 max-w-xs">
+                  {authors.slice(0, 2).map((author, index) => (
+                     <Badge key={index} variant="secondary" className="text-xs">
+                        {author.author}
+                     </Badge>
+                  ))}
+                  {authors.length > 2 && (
+                     <Badge variant="outline" className="text-xs">
+                        +{authors.length - 2} more
+                     </Badge>
+                  )}
                </div>
-            ) : (
-               <span className="text-muted-foreground">—</span>
+            );
+
+         case "genres":
+            const genres = bookGenres[book.bookID] || [];
+            if (genres.length === 0) {
+               return <span className="text-muted-foreground">—</span>;
+            }
+
+            return (
+               <div className="flex flex-wrap gap-1 max-w-xs">
+                  {genres.slice(0, 2).map((genre, index) => (
+                     <Badge key={index} variant="secondary" className="text-xs">
+                        {genre.genre}
+                     </Badge>
+                  ))}
+                  {genres.length > 2 && (
+                     <Badge variant="outline" className="text-xs">
+                        +{genres.length - 2} more
+                     </Badge>
+                  )}
+               </div>
             );
 
          case "publicationDate":

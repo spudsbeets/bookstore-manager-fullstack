@@ -47,7 +47,7 @@ const authorSchema = z.object({
          "Middle name can only contain letters, spaces, hyphens, and apostrophes"
       )
       .transform((val) => val.trim())
-      .optional(),
+      .nullable(),
    lastName: z
       .string()
       .max(50, "Last name must be less than 50 characters")
@@ -56,7 +56,7 @@ const authorSchema = z.object({
          "Last name can only contain letters, spaces, hyphens, and apostrophes"
       )
       .transform((val) => val.trim())
-      .optional(),
+      .nullable(),
 });
 
 type AuthorFormValues = z.infer<typeof authorSchema>;
@@ -83,8 +83,8 @@ export function AuthorsForm({
       resolver: zodResolver(authorSchema),
       defaultValues: initialData || {
          firstName: "",
-         middleName: "",
-         lastName: "",
+         middleName: null,
+         lastName: null,
       },
    });
 
@@ -240,6 +240,7 @@ export function AuthorsForm({
                                  <Input
                                     placeholder="Enter middle name (optional)"
                                     {...field}
+                                    value={field.value || ""}
                                     disabled={isViewMode}
                                  />
                               </FormControl>
@@ -261,6 +262,7 @@ export function AuthorsForm({
                                  <Input
                                     placeholder="Enter last name"
                                     {...field}
+                                    value={field.value || ""}
                                     disabled={isViewMode}
                                  />
                               </FormControl>

@@ -40,9 +40,9 @@ import AuthorsService from "@/services/AuthorsService";
 interface Author {
    authorID: number;
    firstName: string;
-   middleName?: string;
-   lastName?: string;
-   fullName?: string;
+   middleName: string | null;
+   lastName: string | null;
+   fullName: string;
 }
 
 interface AuthorsListProps {

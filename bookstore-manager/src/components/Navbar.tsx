@@ -51,7 +51,6 @@ interface LayoutMode {
 }
 
 export function Navbar() {
-   const [activeSection, setActiveSection] = useState<string>("");
    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
    const [currentLayoutMode, setCurrentLayoutMode] =
       useState<string>("contained");
@@ -135,14 +134,12 @@ export function Navbar() {
          ),
       };
    });
-   const handleOperation = (entityName: string, operation: any) => {
-      setActiveSection(`${operation.action}-${entityName.toLowerCase()}`);
+   const handleOperation = (_entityName: string, operation: any) => {
       console.log(`Navigating to: ${operation.url}`);
       navigate(operation.url);
    };
 
    const handleMobileNavigation = (entity: DatabaseEntity) => {
-      setActiveSection(`view-${entity.name.toLowerCase()}`);
       console.log(`Navigating to: ${entity.baseUrl}`);
       navigate(entity.baseUrl);
       setIsMobileMenuOpen(false);

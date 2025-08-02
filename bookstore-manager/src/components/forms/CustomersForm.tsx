@@ -53,8 +53,7 @@ const customerSchema = z.object({
       .email("Invalid email address")
       .max(100, "Email must be less than 100 characters")
       .transform((val) => val.trim().toLowerCase())
-      .optional()
-      .or(z.literal("")),
+      .nullable(),
    phoneNumber: z
       .string()
       .regex(
@@ -63,7 +62,7 @@ const customerSchema = z.object({
       )
       .max(20, "Phone number must be less than 20 characters")
       .transform((val) => val.trim())
-      .optional(),
+      .nullable(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -91,8 +90,8 @@ export function CustomersForm({
       defaultValues: initialData || {
          firstName: "",
          lastName: "",
-         email: "",
-         phoneNumber: "",
+         email: null,
+         phoneNumber: null,
       },
    });
 
@@ -271,6 +270,7 @@ export function CustomersForm({
                                     type="email"
                                     placeholder="Enter email address"
                                     {...field}
+                                    value={field.value || ""}
                                     disabled={isViewMode}
                                  />
                               </FormControl>
@@ -292,6 +292,7 @@ export function CustomersForm({
                                  <Input
                                     placeholder="Enter phone number"
                                     {...field}
+                                    value={field.value || ""}
                                     disabled={isViewMode}
                                  />
                               </FormControl>

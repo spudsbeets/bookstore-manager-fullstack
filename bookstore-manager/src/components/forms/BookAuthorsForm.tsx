@@ -2,18 +2,6 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-   Form,
-   FormControl,
-   FormDescription,
-   FormField,
-   FormItem,
-   FormLabel,
-   FormMessage,
-} from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
    Card,
    CardContent,
@@ -21,16 +9,34 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+   Form,
+   FormControl,
+   FormField,
+   FormItem,
+   FormLabel,
+   FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Users, Loader2, Trash2 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { Users } from "lucide-react";
+import { toast } from "sonner";
+
+// Services
 import BookAuthorsService from "@/services/BookAuthorsService";
-import BooksService, { type Book } from "@/services/BooksService";
+import BooksService from "@/services/BooksService";
 import AuthorsService from "@/services/AuthorsService";
 
-// Enhanced schema with input sanitization
+// -----------------------------
+// ZOD SCHEMA & TYPES
+// -----------------------------
+
 const bookAuthorSchema = z.object({
-   bookID: z.number().min(1, "Book ID is required"),
-   authorID: z.number().min(1, "Author is required"),
+   title: z.string().min(1, "Book title is required"),
+   author: z.string().min(1, "Author is required"),
 });
 
 type BookAuthorFormData = z.infer<typeof bookAuthorSchema>;
@@ -50,51 +56,53 @@ export function BookAuthorsForm({
    onSave,
    onDelete,
 }: BookAuthorsFormProps) {
+   const [isLoading, setIsLoading] = useState(true);
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-   const [currentBook, setCurrentBook] = useState<any>(null);
+   const [currentBook, setCurrentBook] = useState<any | null>(null);
    const [authors, setAuthors] = useState<any[]>([]);
-   const [selectedAuthor, setSelectedAuthor] = useState<any>(null);
-   const [isLoading, setIsLoading] = useState(true);
 
-   // Fetch book and authors data
+   const form = useForm<BookAuthorFormData>({
+      resolver: zodResolver(bookAuthorSchema),
+      defaultValues: initialData
+         ? {
+              title: initialData.title || "",
+              author: initialData.author || "",
+           }
+         : {
+              title: "",
+              author: "",
+           },
+   });
+
    useEffect(() => {
       const fetchData = async () => {
-         setIsLoading(true);
          try {
             // Fetch book details
-            const bookResponse = await BooksService.get(bookID);
-            setCurrentBook(bookResponse.data);
+            const bookResult = await BooksService.get(bookID);
+            setCurrentBook(bookResult.data);
 
-            // Fetch all authors for dropdown
-            const authorsResponse = await AuthorsService.getAll();
-            setAuthors(authorsResponse.data);
+            // Fetch authors for selection
+            const authorsResult = await AuthorsService.getAll();
+            setAuthors(authorsResult.data);
 
-            // If editing, get the current author details
-            if (initialData?.authorID) {
-               const authorResponse = await AuthorsService.get(
-                  initialData.authorID
-               );
-               setSelectedAuthor(authorResponse.data);
+            // Set default title from book
+            if (!initialData) {
+               form.setValue("title", bookResult.data.title);
             }
          } catch (error) {
             console.error("Error fetching data:", error);
+            toast.error("Failed to load form data", {
+               description: "Please refresh the page and try again.",
+            });
          } finally {
             setIsLoading(false);
          }
       };
 
       fetchData();
-   }, [bookID, initialData?.authorID]);
-
-   const form = useForm<BookAuthorFormData>({
-      resolver: zodResolver(bookAuthorSchema),
-      defaultValues: {
-         bookID: bookID,
-         authorID: initialData?.authorID || 0,
-      },
-   });
+   }, [bookID, initialData, form]);
 
    const onSubmit = async (data: BookAuthorFormData) => {
       setIsSubmitting(true);
@@ -102,15 +110,25 @@ export function BookAuthorsForm({
          if (mode === "create") {
             // Create new book-author relationship
             await BookAuthorsService.create(data);
+            toast.success("Book author relationship created successfully!", {
+               description: `${data.author} has been added to ${data.title}.`,
+            });
          } else if (mode === "edit" && initialData?.bookAuthorID) {
             // Update existing book-author relationship
             await BookAuthorsService.update(initialData.bookAuthorID, data);
+            toast.success("Book author relationship updated successfully!", {
+               description: `${data.author} has been updated for ${data.title}.`,
+            });
          }
 
          onSave(data);
       } catch (error) {
          console.error("Error saving book author:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to save book author relationship", {
+            description:
+               "There was an error saving the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsSubmitting(false);
       }
@@ -122,10 +140,17 @@ export function BookAuthorsForm({
       setIsDeleting(true);
       try {
          await BookAuthorsService.remove(initialData.bookAuthorID);
+         toast.success("Book author relationship deleted successfully!", {
+            description: `${initialData.author} has been removed from ${initialData.title}.`,
+         });
          onDelete();
       } catch (error) {
          console.error("Error deleting book author:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to delete book author relationship", {
+            description:
+               "There was an error deleting the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -194,26 +219,21 @@ export function BookAuthorsForm({
                      {mode === "create" && (
                         <FormField
                            control={form.control}
-                           name="authorID"
+                           name="author"
                            render={({ field }) => (
                               <FormItem>
                                  <FormLabel>Author</FormLabel>
                                  <FormControl>
                                     <SearchableSelect
-                                       options={authors.map((author: any) => ({
-                                          value: author.authorID.toString(),
-                                          label:
-                                             author.fullName ||
-                                             `${author.firstName} ${author.lastName}`,
+                                       options={authors.map((author) => ({
+                                          value: author.fullName,
+                                          label: author.fullName,
                                        }))}
-                                       value={field.value?.toString()}
-                                       onValueChange={(value) =>
-                                          field.onChange(Number(value))
-                                       }
+                                       value={field.value}
+                                       onValueChange={field.onChange}
                                        placeholder="Select an author"
                                        searchPlaceholder="Search authors..."
                                        emptyMessage="No authors found."
-                                       disabled={isLoading}
                                     />
                                  </FormControl>
                                  <FormMessage />
@@ -222,92 +242,69 @@ export function BookAuthorsForm({
                         />
                      )}
 
-                     {/* Author Update (Edit mode) */}
-                     {mode === "edit" && (
+                     {/* Display Author (Edit/View modes) */}
+                     {(mode === "edit" || mode === "view") && (
                         <FormField
                            control={form.control}
-                           name="authorID"
+                           name="author"
                            render={({ field }) => (
                               <FormItem>
-                                 <FormLabel>Update Author</FormLabel>
+                                 <FormLabel>Author</FormLabel>
                                  <FormControl>
-                                    <SearchableSelect
-                                       options={authors.map((author: any) => ({
-                                          value: author.authorID.toString(),
-                                          label:
-                                             author.fullName ||
-                                             `${author.firstName} ${author.lastName}`,
-                                       }))}
-                                       value={field.value?.toString()}
-                                       onValueChange={(value) =>
-                                          field.onChange(Number(value))
-                                       }
-                                       placeholder="Select a new author"
-                                       searchPlaceholder="Search authors..."
-                                       emptyMessage="No authors found."
-                                       disabled={isLoading}
+                                    <Input
+                                       {...field}
+                                       disabled={mode === "view"}
+                                       placeholder="Author name"
                                     />
                                  </FormControl>
-                                 <FormDescription>
-                                    Choose a new author to replace the current
-                                    one
-                                 </FormDescription>
                                  <FormMessage />
                               </FormItem>
                            )}
                         />
                      )}
 
-                     {/* Current Author (Edit/View mode) */}
-                     {(mode === "edit" || mode === "view") &&
-                        selectedAuthor && (
-                           <div className="space-y-2">
-                              <Label>Author</Label>
-                              <div className="p-3 bg-muted rounded-md">
-                                 <div className="font-medium">
-                                    {selectedAuthor.fullName}
-                                 </div>
-                                 <div className="text-sm text-muted-foreground">
-                                    Author ID: {selectedAuthor.authorID}
-                                 </div>
-                              </div>
-                           </div>
-                        )}
-
                      {/* Action Buttons */}
-                     <div className="flex gap-2 pt-4">
+                     <div className="flex gap-2">
                         <Button
                            type="submit"
-                           disabled={mode === "view" || isSubmitting}
+                           disabled={isSubmitting || mode === "view"}
+                           className="flex-1"
                         >
-                           {isSubmitting ? (
-                              "Saving..."
-                           ) : (
-                              <>
-                                 {mode === "create" && "Add Author"}
-                                 {mode === "edit" && "Update Author"}
-                                 {mode === "view" && "View Details"}
-                              </>
+                           {isSubmitting && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                            )}
+                           {mode === "create" && "Add Author to Book"}
+                           {mode === "edit" && "Update Book Author"}
                         </Button>
 
-                        {mode === "edit" && onDelete && (
-                           <DeleteConfirmationDialog
-                              isOpen={showDeleteDialog}
-                              onOpenChange={setShowDeleteDialog}
-                              onConfirm={handleDelete}
-                              isDeleting={isDeleting}
-                              itemName={
-                                 selectedAuthor?.fullName || "this author"
-                              }
-                              itemType="book author"
-                           />
+                        {mode !== "create" && onDelete && (
+                           <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={() => setShowDeleteDialog(true)}
+                              disabled={isDeleting}
+                           >
+                              {isDeleting && (
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                           </Button>
                         )}
                      </div>
                   </form>
                </Form>
             </CardContent>
          </Card>
+
+         <DeleteConfirmationDialog
+            isOpen={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onConfirm={handleDelete}
+            isDeleting={isDeleting}
+            itemName={initialData?.author || ""}
+            itemType="book author relationship"
+         />
       </div>
    );
 }

@@ -87,4 +87,3 @@ class BooksService {
 }
 
 export default new BooksService();
-export type Book = z.infer<typeof BookSchema>;

@@ -34,7 +34,8 @@ const orderItemSchema = z.object({
    orderID: z.number().min(1, "Order is required"),
    bookID: z.number().min(1, "Book is required"),
    quantity: z.number().min(1, "Quantity must be at least 1"),
-   price: z.number().min(0, "Price must be positive"),
+   individualPrice: z.number().min(0, "Price must be positive"),
+   subtotal: z.number().min(0, "Subtotal must be positive"),
 });
 
 type OrderItemFormValues = z.infer<typeof orderItemSchema>;
@@ -43,31 +44,31 @@ type OrderItemFormValues = z.infer<typeof orderItemSchema>;
 const sampleBooks: Array<{
    bookID: number;
    title: string;
-   price: number;
+   individualPrice: number;
    inventoryQty: number;
 }> = [
    {
       bookID: 1,
       title: "Inherent Vice",
-      price: 15.99,
+      individualPrice: 15.99,
       inventoryQty: 5,
    },
    {
       bookID: 2,
       title: "Beloved",
-      price: 17.99,
+      individualPrice: 17.99,
       inventoryQty: 7,
    },
    {
       bookID: 3,
       title: "The Talisman",
-      price: 18.99,
+      individualPrice: 18.99,
       inventoryQty: 6,
    },
    {
       bookID: 4,
       title: "Good Omens",
-      price: 16.99,
+      individualPrice: 16.99,
       inventoryQty: 8,
    },
 ];
@@ -98,7 +99,8 @@ export function OrderItemsForm({
          orderID: orderID,
          bookID: 0,
          quantity: 1,
-         price: 0,
+         individualPrice: 0,
+         subtotal: 0,
       },
    });
 
@@ -258,7 +260,7 @@ export function OrderItemsForm({
                               <SearchableSelect
                                  options={sampleBooks.map((book) => ({
                                     value: book.bookID.toString(),
-                                    label: `${book.title} - $${book.price}`,
+                                    label: `${book.title} - $${book.individualPrice}`,
                                  }))}
                                  value={field.value?.toString()}
                                  onValueChange={(value) =>
@@ -314,7 +316,7 @@ export function OrderItemsForm({
 
                      <FormField
                         control={form.control}
-                        name="price"
+                        name="individualPrice"
                         render={({ field }) => (
                            <FormItem>
                               <FormLabel>Price per Unit</FormLabel>

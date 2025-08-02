@@ -40,8 +40,8 @@ interface Customer {
    customerID: number;
    firstName: string;
    lastName: string;
-   email?: string;
-   phoneNumber?: string;
+   email: string | null;
+   phoneNumber: string | null;
 }
 
 interface CustomersListProps {
@@ -107,7 +107,7 @@ export function CustomersList({
       }
    };
 
-   const formatPhoneNumber = (phoneNumber?: string) => {
+   const formatPhoneNumber = (phoneNumber: string | null) => {
       if (!phoneNumber) return "N/A";
       return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(
          3,

@@ -8,8 +8,8 @@ import type { AxiosResponse } from "axios";
 
 export const BookLocationSchema = z.object({
    bookLocationID: z.number(),
-   bookID: z.number(),
-   slocID: z.number(),
+   title: z.string(),
+   location: z.string(),
    quantity: z.number().min(0),
 });
 

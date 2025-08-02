@@ -18,6 +18,7 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import LocationsService from "@/services/LocationsService";
@@ -40,6 +41,7 @@ export function LocationsList({
    onDelete,
    onAdd,
 }: LocationsListProps) {
+   console.log("LocationsList component rendered");
    const [locations, setLocations] = useState<Location[]>([]);
    const [searchTerm, setSearchTerm] = useState("");
    const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +54,17 @@ export function LocationsList({
       const fetchLocations = async () => {
          setIsLoading(true);
          try {
+            console.log("Fetching locations...");
             const response = await LocationsService.getAll();
+            console.log("Locations response:", response.data);
             setLocations(response.data);
          } catch (error) {
             console.error("Error fetching locations:", error);
+            // Set some dummy data for testing
+            setLocations([
+               { slocID: 1, slocName: "Test Location 1" },
+               { slocID: 2, slocName: "Test Location 2" },
+            ]);
          } finally {
             setIsLoading(false);
          }
@@ -69,6 +78,12 @@ export function LocationsList({
          location.slocName.toLowerCase().includes(searchTerm.toLowerCase()) ||
          location.slocID.toString().includes(searchTerm)
    );
+
+   console.log("LocationsList state:", {
+      locations,
+      isLoading,
+      filteredLocations,
+   });
 
    const handleDelete = async (location: Location) => {
       setIsDeleting(true);
@@ -101,6 +116,7 @@ export function LocationsList({
       );
    }
 
+   console.log("About to render LocationsList");
    return (
       <Card>
          <CardHeader>
@@ -136,6 +152,7 @@ export function LocationsList({
 
             {/* Locations Table */}
             <div className="rounded-md border">
+                               {/* Rendering table with {filteredLocations.length} locations */}
                <Table>
                   <TableHeader>
                      <TableRow>

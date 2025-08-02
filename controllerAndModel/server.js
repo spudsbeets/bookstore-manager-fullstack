@@ -29,6 +29,7 @@ import salesRateLocationsRouter from "./routes/salesRateLocations.routes.js";
 import locationsRouter from "./routes/locations.routes.js";
 import bookAuthorsRouter from "./routes/bookAuthors.routes.js";
 import bookGenresRouter from "./routes/bookGenres.routes.js";
+import bookLocationsRouter from "./routes/bookLocations.routes.js";
 import orderItemsRouter from "./routes/orderItems.routes.js";
 import searchRouter from "./routes/search.routes.js";
 
@@ -104,6 +105,7 @@ app.use("/api/v1/sales-rates", salesRateLocationsRouter);
 app.use("/api/v1/locations", locationsRouter);
 app.use("/api/v1/book-authors", bookAuthorsRouter);
 app.use("/api/v1/book-genres", bookGenresRouter);
+app.use("/api/v1/book-locations", bookLocationsRouter);
 app.use("/api/v1/order-items", orderItemsRouter);
 app.use("/api/v1/search", searchRouter);
 

@@ -29,17 +29,16 @@ import LocationsService from "@/services/LocationsService";
 
 // Enhanced schema with input sanitization
 const locationSchema = z.object({
-   locationID: z.number().optional(),
-   locationName: z.string()
+   slocID: z.number().optional(),
+   slocName: z
+      .string()
       .min(1, "Location name is required")
       .max(100, "Location name must be less than 100 characters")
-      .regex(/^[a-zA-Z0-9\s&.,'-]+$/, "Location name can only contain letters, numbers, spaces, and common punctuation")
-      .transform(val => val.trim()),
-   address: z.string()
-      .max(200, "Address must be less than 200 characters")
-      .regex(/^[a-zA-Z0-9\s&.,'-]+$/, "Address can only contain letters, numbers, spaces, and common punctuation")
-      .transform(val => val.trim())
-      .optional(),
+      .regex(
+         /^[a-zA-Z0-9\s&.,'-]+$/,
+         "Location name can only contain letters, numbers, spaces, and common punctuation"
+      )
+      .transform((val) => val.trim()),
 });
 
 type LocationFormValues = z.infer<typeof locationSchema>;
@@ -65,7 +64,7 @@ export function LocationsForm({
    const form = useForm<LocationFormValues>({
       resolver: zodResolver(locationSchema),
       defaultValues: initialData || {
-         locationName: "",
+         slocName: "",
       },
    });
 
@@ -79,11 +78,11 @@ export function LocationsForm({
          if (isCreateMode) {
             // Create new location
             await LocationsService.create(data);
-         } else if (isEditMode && initialData?.locationID) {
+         } else if (isEditMode && initialData?.slocID) {
             // Update existing location
-            await LocationsService.update(initialData.locationID, data);
+            await LocationsService.update(initialData.slocID, data);
          }
-         
+
          if (onSave) {
             onSave(data);
          }
@@ -100,8 +99,8 @@ export function LocationsForm({
    async function handleDelete() {
       setIsDeleting(true);
       try {
-         if (initialData?.locationID) {
-            await LocationsService.remove(initialData.locationID);
+         if (initialData?.slocID) {
+            await LocationsService.remove(initialData.slocID);
          }
          if (onDelete) {
             onDelete();
@@ -169,10 +168,10 @@ export function LocationsForm({
                   className="space-y-6"
                >
                   {/* Location ID (read-only for edit/view) */}
-                  {!isCreateMode && initialData?.locationID && (
+                  {!isCreateMode && initialData?.slocID && (
                      <FormField
                         control={form.control}
-                        name="locationID"
+                        name="slocID"
                         render={({ field }) => (
                            <FormItem>
                               <FormLabel>Location ID</FormLabel>
@@ -195,7 +194,7 @@ export function LocationsForm({
                   {/* Location Name */}
                   <FormField
                      control={form.control}
-                     name="locationName"
+                     name="slocName"
                      render={({ field }) => (
                         <FormItem>
                            <FormLabel>Location Name</FormLabel>
@@ -247,7 +246,7 @@ export function LocationsForm({
             onOpenChange={setShowDeleteDialog}
             onConfirm={handleDelete}
             isDeleting={isDeleting}
-            itemName={initialData?.locationName || ""}
+            itemName={initialData?.slocName || ""}
             itemType="storage location"
          />
       </Card>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { BookLocationsForm } from "@/components/forms/BookLocationsForm";
 import { BookLocationsList } from "@/components/list-views/BookLocationsList";
@@ -21,61 +21,8 @@ import {
 import { MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Sample data for demonstration
-const sampleBooks = [
-   {
-      bookID: 1,
-      title: "Beloved",
-      "isbn-10": "1400033416",
-      publicationDate: "1987-09-01",
-      price: 17.99,
-      publisherID: 1,
-   },
-   {
-      bookID: 2,
-      title: "Inherent Vice",
-      "isbn-10": "0143126850",
-      publicationDate: "2009-08-04",
-      price: 15.99,
-      publisherID: 2,
-   },
-   {
-      bookID: 3,
-      title: "The Talisman",
-      "isbn-10": "0670691992",
-      publicationDate: "1984-11-08",
-      price: 18.99,
-      publisherID: 3,
-   },
-   {
-      bookID: 4,
-      title: "Good Omens",
-      "isbn-10": "0060853980",
-      publicationDate: "2006-11-28",
-      price: 16.99,
-      publisherID: 4,
-   },
-];
-
-// @ts-ignore - Demo data for UI
-const sampleBookLocations = [
-   {
-      bookLocationID: 1,
-      bookID: 1,
-      slocID: 1,
-      quantity: 8,
-      bookTitle: "Beloved",
-      locationName: "Orchard",
-   },
-   {
-      bookLocationID: 2,
-      bookID: 2,
-      slocID: 2,
-      quantity: 12,
-      bookTitle: "Inherent Vice",
-      locationName: "Sunwillow",
-   },
-];
+// Import services for real data
+import BooksService from "@/services/BooksService";
 
 export function BookLocationsPage() {
    const navigate = useNavigate();
@@ -87,6 +34,21 @@ export function BookLocationsPage() {
       "List Book Locations"
    );
    const [selectedBook, setSelectedBook] = useState<any>(null);
+   const [books, setBooks] = useState<any[]>([]);
+
+   // Fetch real data from API
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const booksResponse = await BooksService.getAll();
+            setBooks(booksResponse.data);
+         } catch (error) {
+            console.error("Error fetching books:", error);
+         }
+      };
+
+      fetchData();
+   }, []);
 
    // const handleCreate = () => {
    //    setCurrentView("create");
@@ -255,13 +217,13 @@ export function BookLocationsPage() {
                            <div>
                               <Label>Select Book</Label>
                               <SearchableSelect
-                                 options={sampleBooks.map((book) => ({
+                                 options={books.map((book) => ({
                                     value: book.bookID.toString(),
                                     label: book.title,
                                  }))}
                                  value={selectedBook?.bookID?.toString()}
                                  onValueChange={(value) => {
-                                    const book = sampleBooks.find(
+                                    const book = books.find(
                                        (b) => b.bookID === Number(value)
                                     );
                                     setSelectedBook(book);

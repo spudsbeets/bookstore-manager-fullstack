@@ -33,9 +33,10 @@ const orderSchema = z.object({
    orderID: z.number().optional(),
    customerID: z.number().min(1, "Customer is required"),
    orderDate: z.string().min(1, "Order date is required"),
-   orderTime: z.string().optional(),
+   orderTime: z.string(),
    total: z.number().min(0, "Total must be positive"),
-   status: z.string().min(1, "Status is required"),
+   taxRate: z.number().min(0, "Tax rate must be positive"),
+   salesRateID: z.number().min(1, "Sales rate location is required"),
 });
 
 type OrderFormValues = z.infer<typeof orderSchema>;
@@ -137,7 +138,7 @@ export function OrdersForm({
             // Update existing order
             await OrdersService.update(initialData.orderID, data);
          }
-         
+
          if (onSave) {
             onSave(data);
          }

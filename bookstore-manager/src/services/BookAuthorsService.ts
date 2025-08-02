@@ -8,8 +8,8 @@ import type { AxiosResponse } from "axios";
 
 export const BookAuthorSchema = z.object({
    bookAuthorID: z.number(),
-   bookID: z.number(),
-   authorID: z.number(),
+   title: z.string(),
+   author: z.string(),
 });
 
 export type BookAuthor = z.infer<typeof BookAuthorSchema>;
@@ -43,6 +43,10 @@ class BookAuthorsService {
 
    remove(id: number): Promise<AxiosResponse<void>> {
       return http.delete(`/book-authors/${id}`);
+   }
+
+   getByBookId(bookId: number): Promise<AxiosResponse<BookAuthor[]>> {
+      return http.get(`/book-authors/book/${bookId}`);
    }
 }
 

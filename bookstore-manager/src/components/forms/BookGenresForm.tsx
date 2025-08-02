@@ -2,18 +2,6 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-   Form,
-   FormControl,
-   FormDescription,
-   FormField,
-   FormItem,
-   FormLabel,
-   FormMessage,
-} from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
    Card,
    CardContent,
@@ -21,16 +9,34 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+   Form,
+   FormControl,
+   FormField,
+   FormItem,
+   FormLabel,
+   FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tag, Loader2, Trash2 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { Tags } from "lucide-react";
+import { toast } from "sonner";
+
+// Services
 import BookGenresService from "@/services/BookGenresService";
-import BooksService, { type Book } from "@/services/BooksService";
+import BooksService from "@/services/BooksService";
 import GenresService from "@/services/GenresService";
 
-// Enhanced schema with input sanitization
+// -----------------------------
+// ZOD SCHEMA & TYPES
+// -----------------------------
+
 const bookGenreSchema = z.object({
-   bookID: z.number().min(1, "Book ID is required"),
-   genreID: z.number().min(1, "Genre is required"),
+   title: z.string().min(1, "Book title is required"),
+   genre: z.string().min(1, "Genre is required"),
 });
 
 type BookGenreFormData = z.infer<typeof bookGenreSchema>;
@@ -50,51 +56,53 @@ export function BookGenresForm({
    onSave,
    onDelete,
 }: BookGenresFormProps) {
+   const [isLoading, setIsLoading] = useState(true);
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-   const [currentBook, setCurrentBook] = useState<any>(null);
+   const [currentBook, setCurrentBook] = useState<any | null>(null);
    const [genres, setGenres] = useState<any[]>([]);
-   const [selectedGenre, setSelectedGenre] = useState<any>(null);
-   const [isLoading, setIsLoading] = useState(true);
 
-   // Fetch book and genres data
+   const form = useForm<BookGenreFormData>({
+      resolver: zodResolver(bookGenreSchema),
+      defaultValues: initialData
+         ? {
+              title: initialData.title || "",
+              genre: initialData.genre || "",
+           }
+         : {
+              title: "",
+              genre: "",
+           },
+   });
+
    useEffect(() => {
       const fetchData = async () => {
-         setIsLoading(true);
          try {
             // Fetch book details
-            const bookResponse = await BooksService.get(bookID);
-            setCurrentBook(bookResponse.data);
+            const bookResult = await BooksService.get(bookID);
+            setCurrentBook(bookResult.data);
 
-            // Fetch all genres for dropdown
-            const genresResponse = await GenresService.getAll();
-            setGenres(genresResponse.data);
+            // Fetch genres for selection
+            const genresResult = await GenresService.getAll();
+            setGenres(genresResult.data);
 
-            // If editing, get the current genre details
-            if (initialData?.genreID) {
-               const genreResponse = await GenresService.get(
-                  initialData.genreID
-               );
-               setSelectedGenre(genreResponse.data);
+            // Set default title from book
+            if (!initialData) {
+               form.setValue("title", bookResult.data.title);
             }
          } catch (error) {
             console.error("Error fetching data:", error);
+            toast.error("Failed to load form data", {
+               description: "Please refresh the page and try again.",
+            });
          } finally {
             setIsLoading(false);
          }
       };
 
       fetchData();
-   }, [bookID, initialData?.genreID]);
-
-   const form = useForm<BookGenreFormData>({
-      resolver: zodResolver(bookGenreSchema),
-      defaultValues: {
-         bookID: bookID,
-         genreID: initialData?.genreID || 0,
-      },
-   });
+   }, [bookID, initialData, form]);
 
    const onSubmit = async (data: BookGenreFormData) => {
       setIsSubmitting(true);
@@ -102,15 +110,25 @@ export function BookGenresForm({
          if (mode === "create") {
             // Create new book-genre relationship
             await BookGenresService.create(data);
+            toast.success("Book genre relationship created successfully!", {
+               description: `${data.genre} has been added to ${data.title}.`,
+            });
          } else if (mode === "edit" && initialData?.bookGenreID) {
             // Update existing book-genre relationship
             await BookGenresService.update(initialData.bookGenreID, data);
+            toast.success("Book genre relationship updated successfully!", {
+               description: `${data.genre} has been updated for ${data.title}.`,
+            });
          }
 
          onSave(data);
       } catch (error) {
          console.error("Error saving book genre:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to save book genre relationship", {
+            description:
+               "There was an error saving the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsSubmitting(false);
       }
@@ -122,10 +140,17 @@ export function BookGenresForm({
       setIsDeleting(true);
       try {
          await BookGenresService.remove(initialData.bookGenreID);
+         toast.success("Book genre relationship deleted successfully!", {
+            description: `${initialData.genre} has been removed from ${initialData.title}.`,
+         });
          onDelete();
       } catch (error) {
          console.error("Error deleting book genre:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to delete book genre relationship", {
+            description:
+               "There was an error deleting the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -138,7 +163,7 @@ export function BookGenresForm({
             <Card>
                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                     <Tags className="h-5 w-5" />
+                     <Tag className="h-5 w-5" />
                      Loading...
                   </CardTitle>
                   <CardDescription>
@@ -160,7 +185,7 @@ export function BookGenresForm({
          <Card>
             <CardHeader>
                <CardTitle className="flex items-center gap-2">
-                  <Tags className="h-5 w-5" />
+                  <Tag className="h-5 w-5" />
                   {mode === "create" && "Add Book Genre"}
                   {mode === "edit" && "Edit Book Genre"}
                   {mode === "view" && "View Book Genre"}
@@ -194,24 +219,21 @@ export function BookGenresForm({
                      {mode === "create" && (
                         <FormField
                            control={form.control}
-                           name="genreID"
+                           name="genre"
                            render={({ field }) => (
                               <FormItem>
                                  <FormLabel>Genre</FormLabel>
                                  <FormControl>
                                     <SearchableSelect
-                                       options={genres.map((genre: any) => ({
-                                          value: genre.genreID.toString(),
+                                       options={genres.map((genre) => ({
+                                          value: genre.genreName,
                                           label: genre.genreName,
                                        }))}
-                                       value={field.value?.toString()}
-                                       onValueChange={(value) =>
-                                          field.onChange(Number(value))
-                                       }
+                                       value={field.value}
+                                       onValueChange={field.onChange}
                                        placeholder="Select a genre"
                                        searchPlaceholder="Search genres..."
                                        emptyMessage="No genres found."
-                                       disabled={isLoading}
                                     />
                                  </FormControl>
                                  <FormMessage />
@@ -220,89 +242,69 @@ export function BookGenresForm({
                         />
                      )}
 
-                     {/* Genre Update (Edit mode) */}
-                     {mode === "edit" && (
+                     {/* Display Genre (Edit/View modes) */}
+                     {(mode === "edit" || mode === "view") && (
                         <FormField
                            control={form.control}
-                           name="genreID"
+                           name="genre"
                            render={({ field }) => (
                               <FormItem>
-                                 <FormLabel>Update Genre</FormLabel>
+                                 <FormLabel>Genre</FormLabel>
                                  <FormControl>
-                                    <SearchableSelect
-                                       options={genres.map((genre: any) => ({
-                                          value: genre.genreID.toString(),
-                                          label: genre.genreName,
-                                       }))}
-                                       value={field.value?.toString()}
-                                       onValueChange={(value) =>
-                                          field.onChange(Number(value))
-                                       }
-                                       placeholder="Select a new genre"
-                                       searchPlaceholder="Search genres..."
-                                       emptyMessage="No genres found."
-                                       disabled={isLoading}
+                                    <Input
+                                       {...field}
+                                       disabled={mode === "view"}
+                                       placeholder="Genre name"
                                     />
                                  </FormControl>
-                                 <FormDescription>
-                                    Choose a new genre to replace the current
-                                    one
-                                 </FormDescription>
                                  <FormMessage />
                               </FormItem>
                            )}
                         />
-                     )}
-
-                     {/* Current Genre (Edit/View mode) */}
-                     {(mode === "edit" || mode === "view") && selectedGenre && (
-                        <div className="space-y-2">
-                           <Label>Genre</Label>
-                           <div className="p-3 bg-muted rounded-md">
-                              <div className="font-medium">
-                                 {selectedGenre.genreName}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                 Genre ID: {selectedGenre.genreID}
-                              </div>
-                           </div>
-                        </div>
                      )}
 
                      {/* Action Buttons */}
-                     <div className="flex gap-2 pt-4">
+                     <div className="flex gap-2">
                         <Button
                            type="submit"
-                           disabled={mode === "view" || isSubmitting}
+                           disabled={isSubmitting || mode === "view"}
+                           className="flex-1"
                         >
-                           {isSubmitting ? (
-                              "Saving..."
-                           ) : (
-                              <>
-                                 {mode === "create" && "Add Genre"}
-                                 {mode === "edit" && "Update Genre"}
-                                 {mode === "view" && "View Details"}
-                              </>
+                           {isSubmitting && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                            )}
+                           {mode === "create" && "Add Genre to Book"}
+                           {mode === "edit" && "Update Book Genre"}
                         </Button>
 
-                        {mode === "edit" && onDelete && (
-                           <DeleteConfirmationDialog
-                              isOpen={showDeleteDialog}
-                              onOpenChange={setShowDeleteDialog}
-                              onConfirm={handleDelete}
-                              isDeleting={isDeleting}
-                              itemName={
-                                 selectedGenre?.genreName || "this genre"
-                              }
-                              itemType="book genre"
-                           />
+                        {mode !== "create" && onDelete && (
+                           <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={() => setShowDeleteDialog(true)}
+                              disabled={isDeleting}
+                           >
+                              {isDeleting && (
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                           </Button>
                         )}
                      </div>
                   </form>
                </Form>
             </CardContent>
          </Card>
+
+         <DeleteConfirmationDialog
+            isOpen={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onConfirm={handleDelete}
+            isDeleting={isDeleting}
+            itemName={initialData?.genre || ""}
+            itemType="book genre relationship"
+         />
       </div>
    );
 }

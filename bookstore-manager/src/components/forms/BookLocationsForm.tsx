@@ -2,20 +2,6 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
-import { Button } from "@/components/ui/button";
-import {
-   Form,
-   FormControl,
-   FormDescription,
-   FormField,
-   FormItem,
-   FormLabel,
-   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Label } from "@/components/ui/label";
 import {
    Card,
    CardContent,
@@ -23,26 +9,34 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+   Form,
+   FormControl,
+   FormField,
+   FormItem,
+   FormLabel,
+   FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MapPin, Loader2, Trash2 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { MapPin, Package } from "lucide-react";
+import { toast } from "sonner";
 
-import BooksService, { type Book } from "@/services/BooksService";
+// Services
+import BookLocationsService from "@/services/BookLocationsService";
+import BooksService from "@/services/BooksService";
+import LocationsService from "@/services/LocationsService";
 
-// Dummy fallback — replace with actual data from LocationsService
-const sampleBooks = [
-   { bookID: 1, title: "1984", "isbn-10": "1234567890" },
-   { bookID: 2, title: "Brave New World", "isbn-10": "0987654321" },
-];
+// -----------------------------
+// ZOD SCHEMA & TYPES
+// -----------------------------
 
-const sampleLocations = [
-   { slocID: 1, slocName: "Main Warehouse" },
-   { slocID: 2, slocName: "Annex" },
-];
-
-// Use slocID instead of locationID to match the form field
 const bookLocationSchema = z.object({
-   bookID: z.number().min(1, "Book ID is required"),
-   slocID: z.number().min(1, "Location is required"),
+   title: z.string().min(1, "Book title is required"),
+   location: z.string().min(1, "Location is required"),
    quantity: z.number().min(0, "Quantity must be at least 0"),
 });
 
@@ -63,59 +57,131 @@ export function BookLocationsForm({
    onSave,
    onDelete,
 }: BookLocationsFormProps) {
+   const [isLoading, setIsLoading] = useState(true);
+   const [isSubmitting, setIsSubmitting] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-   const [loading, setLoading] = useState(true);
-   const [error, setError] = useState<string | null>(null);
-   const [book, setBook] = useState<any>(null);
+   const [currentBook, setCurrentBook] = useState<any | null>(null);
+   const [locations, setLocations] = useState<any[]>([]);
+
+   const form = useForm<BookLocationFormData>({
+      resolver: zodResolver(bookLocationSchema),
+      defaultValues: initialData
+         ? {
+              title: initialData.title || "",
+              location: initialData.location || "",
+              quantity: initialData.quantity || 0,
+           }
+         : {
+              title: "",
+              location: "",
+              quantity: 0,
+           },
+   });
 
    useEffect(() => {
       const fetchData = async () => {
-         setLoading(true);
          try {
+            // Fetch book details
             const bookResult = await BooksService.get(bookID);
-            setBook(bookResult);
-            setError(null);
-         } catch (err) {
-            setError("Failed to fetch book details.");
+            setCurrentBook(bookResult.data);
+
+            // Fetch locations for selection
+            const locationsResult = await LocationsService.getAll();
+            setLocations(locationsResult.data);
+
+            // Set default title from book
+            if (!initialData) {
+               form.setValue("title", bookResult.data.title);
+            }
+         } catch (error) {
+            console.error("Error fetching data:", error);
+            toast.error("Failed to load form data", {
+               description: "Please refresh the page and try again.",
+            });
          } finally {
-            setLoading(false);
+            setIsLoading(false);
          }
       };
 
       fetchData();
-   }, [bookID]);
+   }, [bookID, initialData, form]);
 
-   const form = useForm<BookLocationFormData>({
-      resolver: zodResolver(bookLocationSchema),
-      defaultValues: {
-         bookID: bookID,
-         slocID: initialData?.slocID || 0,
-         quantity: initialData?.quantity || 0,
-      },
-   });
+   const onSubmit = async (data: BookLocationFormData) => {
+      setIsSubmitting(true);
+      try {
+         if (mode === "create") {
+            // Create new book-location relationship
+            await BookLocationsService.create(data);
+            toast.success("Book location relationship created successfully!", {
+               description: `${data.location} has been added to ${data.title} with quantity ${data.quantity}.`,
+            });
+         } else if (mode === "edit" && initialData?.bookLocationID) {
+            // Update existing book-location relationship
+            await BookLocationsService.update(initialData.bookLocationID, data);
+            toast.success("Book location relationship updated successfully!", {
+               description: `${data.location} has been updated for ${data.title} with quantity ${data.quantity}.`,
+            });
+         }
 
-   const onSubmit = (data: BookLocationFormData) => {
-      console.log("Book location data:", data);
-      onSave(data);
+         onSave(data);
+      } catch (error) {
+         console.error("Error saving book location:", error);
+         toast.error("Failed to save book location relationship", {
+            description:
+               "There was an error saving the relationship. Please try again.",
+            duration: Infinity,
+         });
+      } finally {
+         setIsSubmitting(false);
+      }
    };
 
    const handleDelete = async () => {
-      if (!onDelete) return;
+      if (!onDelete || !initialData?.bookLocationID) return;
 
       setIsDeleting(true);
       try {
-         await onDelete();
+         await BookLocationsService.remove(initialData.bookLocationID);
+         toast.success("Book location relationship deleted successfully!", {
+            description: `${initialData.location} has been removed from ${initialData.title}.`,
+         });
+         onDelete();
+      } catch (error) {
+         console.error("Error deleting book location:", error);
+         toast.error("Failed to delete book location relationship", {
+            description:
+               "There was an error deleting the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
       }
    };
 
-   const currentBook = sampleBooks.find((book) => book.bookID === bookID);
-   const selectedLocation = initialData
-      ? sampleLocations.find((loc) => loc.slocID === initialData.slocID)
-      : null;
+   if (isLoading) {
+      return (
+         <div className="max-w-2xl mx-auto space-y-6">
+            <Card>
+               <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                     <MapPin className="h-5 w-5" />
+                     Loading...
+                  </CardTitle>
+                  <CardDescription>
+                     Loading book and location data...
+                  </CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <div className="flex items-center justify-center py-8">
+                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+               </CardContent>
+            </Card>
+         </div>
+      );
+   }
 
    return (
       <div className="max-w-2xl mx-auto space-y-6">
@@ -128,10 +194,8 @@ export function BookLocationsForm({
                   {mode === "view" && "View Book Location"}
                </CardTitle>
                <CardDescription>
-                  {mode === "create" &&
-                     "Add a new storage location for this book"}
-                  {mode === "edit" &&
-                     "Modify the quantity for this book location"}
+                  {mode === "create" && "Add a location to this book"}
+                  {mode === "edit" && "Modify the location for this book"}
                   {mode === "view" && "View book location details"}
                </CardDescription>
             </CardHeader>
@@ -141,6 +205,7 @@ export function BookLocationsForm({
                      onSubmit={form.handleSubmit(onSubmit)}
                      className="space-y-6"
                   >
+                     {/* Book Information (Read-only) */}
                      <div className="space-y-2">
                         <Label>Book</Label>
                         <div className="p-3 bg-muted rounded-md">
@@ -153,25 +218,22 @@ export function BookLocationsForm({
                         </div>
                      </div>
 
+                     {/* Location Selection (Create mode only) */}
                      {mode === "create" && (
                         <FormField
                            control={form.control}
-                           name="slocID"
+                           name="location"
                            render={({ field }) => (
                               <FormItem>
-                                 <FormLabel>Storage Location</FormLabel>
+                                 <FormLabel>Location</FormLabel>
                                  <FormControl>
                                     <SearchableSelect
-                                       options={sampleLocations.map(
-                                          (location) => ({
-                                             value: location.slocID.toString(),
-                                             label: location.slocName,
-                                          })
-                                       )}
-                                       value={field.value?.toString()}
-                                       onValueChange={(value) =>
-                                          field.onChange(Number(value))
-                                       }
+                                       options={locations.map((location) => ({
+                                          value: location.slocName,
+                                          label: location.slocName,
+                                       }))}
+                                       value={field.value}
+                                       onValueChange={field.onChange}
                                        placeholder="Select a location"
                                        searchPlaceholder="Search locations..."
                                        emptyMessage="No locations found."
@@ -183,30 +245,34 @@ export function BookLocationsForm({
                         />
                      )}
 
-                     {(mode === "edit" || mode === "view") &&
-                        selectedLocation && (
-                           <div className="space-y-2">
-                              <Label>Storage Location</Label>
-                              <div className="p-3 bg-muted rounded-md">
-                                 <div className="font-medium">
-                                    {selectedLocation.slocName}
-                                 </div>
-                                 <div className="text-sm text-muted-foreground">
-                                    Location ID: {selectedLocation.slocID}
-                                 </div>
-                              </div>
-                           </div>
-                        )}
+                     {/* Display Location (Edit/View modes) */}
+                     {(mode === "edit" || mode === "view") && (
+                        <FormField
+                           control={form.control}
+                           name="location"
+                           render={({ field }) => (
+                              <FormItem>
+                                 <FormLabel>Location</FormLabel>
+                                 <FormControl>
+                                    <Input
+                                       {...field}
+                                       disabled={mode === "view"}
+                                       placeholder="Location name"
+                                    />
+                                 </FormControl>
+                                 <FormMessage />
+                              </FormItem>
+                           )}
+                        />
+                     )}
 
+                     {/* Quantity Input */}
                      <FormField
                         control={form.control}
                         name="quantity"
                         render={({ field }) => (
                            <FormItem>
-                              <FormLabel className="flex items-center gap-2">
-                                 <Package className="h-4 w-4" />
-                                 Quantity
-                              </FormLabel>
+                              <FormLabel>Quantity</FormLabel>
                               <FormControl>
                                  <Input
                                     type="text"
@@ -227,38 +293,53 @@ export function BookLocationsForm({
                                     disabled={mode === "view"}
                                  />
                               </FormControl>
-                              <FormDescription>
-                                 Number of books stored at this location
-                              </FormDescription>
                               <FormMessage />
                            </FormItem>
                         )}
                      />
 
-                     <div className="flex gap-2 pt-4">
-                        <Button type="submit" disabled={mode === "view"}>
-                           {mode === "create" && "Add Location"}
-                           {mode === "edit" && "Update Quantity"}
-                           {mode === "view" && "View Details"}
+                     {/* Action Buttons */}
+                     <div className="flex gap-2">
+                        <Button
+                           type="submit"
+                           disabled={isSubmitting || mode === "view"}
+                           className="flex-1"
+                        >
+                           {isSubmitting && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                           )}
+                           {mode === "create" && "Add Location to Book"}
+                           {mode === "edit" && "Update Book Location"}
                         </Button>
 
-                        {mode === "edit" && onDelete && (
-                           <DeleteConfirmationDialog
-                              isOpen={showDeleteDialog}
-                              onOpenChange={setShowDeleteDialog}
-                              onConfirm={handleDelete}
-                              isDeleting={isDeleting}
-                              itemName={
-                                 selectedLocation?.slocName || "this location"
-                              }
-                              itemType="book location"
-                           />
+                        {mode !== "create" && onDelete && (
+                           <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={() => setShowDeleteDialog(true)}
+                              disabled={isDeleting}
+                           >
+                              {isDeleting && (
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                           </Button>
                         )}
                      </div>
                   </form>
                </Form>
             </CardContent>
          </Card>
+
+         <DeleteConfirmationDialog
+            isOpen={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onConfirm={handleDelete}
+            isDeleting={isDeleting}
+            itemName={initialData?.location || ""}
+            itemType="book location relationship"
+         />
       </div>
    );
 }

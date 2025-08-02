@@ -8,8 +8,8 @@ import type { AxiosResponse } from "axios";
 
 export const BookGenreSchema = z.object({
    bookGenreID: z.number(),
-   bookID: z.number(),
-   genreID: z.number(),
+   title: z.string(),
+   genre: z.string(),
 });
 
 export type BookGenre = z.infer<typeof BookGenreSchema>;
@@ -43,6 +43,10 @@ class BookGenresService {
 
    remove(id: number): Promise<AxiosResponse<void>> {
       return http.delete(`/book-genres/${id}`);
+   }
+
+   getByBookId(bookId: number): Promise<AxiosResponse<BookGenre[]>> {
+      return http.get(`/book-genres/book/${bookId}`);
    }
 }
 

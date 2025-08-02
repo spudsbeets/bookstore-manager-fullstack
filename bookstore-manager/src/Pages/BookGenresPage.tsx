@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { BookGenresForm } from "@/components/forms/BookGenresForm";
 import { BookGenresList } from "@/components/list-views/BookGenresList";
@@ -20,59 +20,8 @@ import {
 import { Tags } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Sample data for demonstration
-const sampleBooks = [
-   {
-      bookID: 1,
-      title: "Beloved",
-      "isbn-10": "1400033416",
-      publicationDate: "1987-09-01",
-      price: 17.99,
-      publisherID: 1,
-   },
-   {
-      bookID: 2,
-      title: "Inherent Vice",
-      "isbn-10": "0143126850",
-      publicationDate: "2009-08-04",
-      price: 15.99,
-      publisherID: 2,
-   },
-   {
-      bookID: 3,
-      title: "The Talisman",
-      "isbn-10": "0670691992",
-      publicationDate: "1984-11-08",
-      price: 18.99,
-      publisherID: 3,
-   },
-   {
-      bookID: 4,
-      title: "Good Omens",
-      "isbn-10": "0060853980",
-      publicationDate: "2006-11-28",
-      price: 16.99,
-      publisherID: 4,
-   },
-];
-
-// @ts-ignore - Demo data for UI
-const sampleBookGenres = [
-   {
-      bookGenreID: 1,
-      bookID: 1,
-      genreID: 1,
-      bookTitle: "Beloved",
-      genreName: "Postmodern Fiction",
-   },
-   {
-      bookGenreID: 2,
-      bookID: 1,
-      genreID: 2,
-      bookTitle: "Beloved",
-      genreName: "Historical Fiction",
-   },
-];
+// Import services for real data
+import BooksService from "@/services/BooksService";
 
 export function BookGenresPage() {
    const navigate = useNavigate();
@@ -82,6 +31,21 @@ export function BookGenresPage() {
    const [selectedBookGenre, setSelectedBookGenre] = useState<any>(null);
    const [selectViewOption, setSelectViewOption] = useState("List Book Genres");
    const [selectedBook, setSelectedBook] = useState<any>(null);
+   const [books, setBooks] = useState<any[]>([]);
+
+   // Fetch real data from API
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const booksResponse = await BooksService.getAll();
+            setBooks(booksResponse.data);
+         } catch (error) {
+            console.error("Error fetching books:", error);
+         }
+      };
+
+      fetchData();
+   }, []);
 
    // const handleCreate = () => {
    //    setCurrentView("create");
@@ -252,7 +216,7 @@ export function BookGenresPage() {
                               <Select
                                  value={selectedBook?.bookID?.toString() || ""}
                                  onValueChange={(value) => {
-                                    const book = sampleBooks.find(
+                                    const book = books.find(
                                        (b) => b.bookID === Number(value)
                                     );
                                     setSelectedBook(book);
@@ -262,7 +226,7 @@ export function BookGenresPage() {
                                     <SelectValue placeholder="Choose a book..." />
                                  </SelectTrigger>
                                  <SelectContent>
-                                    {sampleBooks.map((book) => (
+                                    {books.map((book) => (
                                        <SelectItem
                                           key={book.bookID}
                                           value={book.bookID.toString()}

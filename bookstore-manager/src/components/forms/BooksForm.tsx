@@ -38,7 +38,6 @@ import { toast } from "sonner";
 import BooksService, {
    type Book,
    type CreateBookDTO,
-   type UpdateBookDTO,
 } from "@/services/BooksService";
 import PublishersService from "@/services/PublishersService";
 import AuthorsService from "@/services/AuthorsService";

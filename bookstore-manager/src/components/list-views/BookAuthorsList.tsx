@@ -1,6 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+   Card,
+   CardContent,
+   CardDescription,
+   CardHeader,
+   CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,15 +18,7 @@ import {
    TableHeader,
    TableRow,
 } from "@/components/ui/table";
-import {
-   Card,
-   CardContent,
-   CardDescription,
-   CardHeader,
-   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Eye, Edit, Trash2, User } from "lucide-react";
+
 import {
    HoverCard,
    HoverCardContent,
@@ -32,6 +31,10 @@ import {
    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { User, Eye, Edit, Trash2, Plus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+// Services
 import BookAuthorsService from "@/services/BookAuthorsService";
 
 interface BookAuthor {
@@ -58,39 +61,25 @@ export function BookAuthorsList({
    onCreateAuthor,
 }: BookAuthorsListProps) {
    const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>([]);
-   const [searchTerm, setSearchTerm] = useState("");
    const [isLoading, setIsLoading] = useState(true);
+   const [searchTerm, setSearchTerm] = useState("");
    const [bookAuthorToDelete, setBookAuthorToDelete] =
       useState<BookAuthor | null>(null);
    const [isDeleting, setIsDeleting] = useState(false);
-
-   // Sample data for book authors
-   const sampleBookAuthors: BookAuthor[] = [
-      {
-         bookAuthorID: 1,
-         authorID: 1,
-         bookID: bookID,
-         authorName: "Toni Morrison",
-         bookTitle: "Beloved",
-      },
-      {
-         bookAuthorID: 2,
-         authorID: 2,
-         bookID: bookID,
-         authorName: "Thomas Pynchon",
-         bookTitle: "Inherent Vice",
-      },
-   ];
 
    useEffect(() => {
       const fetchBookAuthors = async () => {
          setIsLoading(true);
          try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setBookAuthors(sampleBookAuthors);
+            const response = await BookAuthorsService.getAll();
+            setBookAuthors(response.data);
          } catch (error) {
             console.error("Error fetching book authors:", error);
+            toast.error("Failed to load book authors", {
+               description:
+                  "There was an error loading the book authors. Please try again.",
+               duration: Infinity,
+            });
          } finally {
             setIsLoading(false);
          }
@@ -101,27 +90,33 @@ export function BookAuthorsList({
 
    const filteredBookAuthors = bookAuthors.filter(
       (bookAuthor) =>
-         bookAuthor.authorName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+         bookAuthor.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         bookAuthor.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          bookAuthor.bookAuthorID.toString().includes(searchTerm)
    );
 
    const handleDelete = async (bookAuthor: BookAuthor) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await BookAuthorsService.remove(bookAuthor.bookAuthorID);
          setBookAuthors(
             bookAuthors.filter(
                (ba) => ba.bookAuthorID !== bookAuthor.bookAuthorID
             )
          );
+         toast.success("Book author relationship deleted successfully!", {
+            description: `${bookAuthor.author} has been removed from ${bookAuthor.title}.`,
+         });
          if (onDelete) {
             onDelete(bookAuthor);
          }
       } catch (error) {
          console.error("Error deleting book author:", error);
+         toast.error("Failed to delete book author relationship", {
+            description:
+               "There was an error deleting the relationship. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsDeleting(false);
          setBookAuthorToDelete(null);
@@ -135,8 +130,8 @@ export function BookAuthorsList({
                <CardTitle>Book Authors</CardTitle>
             </CardHeader>
             <CardContent>
-               <div className="text-center py-8 text-muted-foreground">
-                  Loading book authors...
+               <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                </div>
             </CardContent>
          </Card>
@@ -167,7 +162,7 @@ export function BookAuthorsList({
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Add an existing author to this book</p>
+                              <p>Add a new author to this book</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -179,12 +174,12 @@ export function BookAuthorsList({
                                  variant="outline"
                                  className="flex items-center gap-2"
                               >
-                                 <Plus className="h-4 w-4" />
+                                 <User className="h-4 w-4" />
                                  Add Author
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Create a new author record</p>
+                              <p>Create a new author</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -192,25 +187,19 @@ export function BookAuthorsList({
                </div>
             </CardHeader>
             <CardContent>
-               {/* Search Bar */}
-               <div className="flex items-center space-x-2 mb-4">
-                  <div className="relative flex-1">
-                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+               <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
                      <Input
-                        placeholder="Search authors..."
+                        placeholder="Search book authors..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
+                        className="max-w-sm"
                      />
                   </div>
-               </div>
 
-               {/* Book Authors Table */}
-               <div className="rounded-md border">
                   <Table>
                      <TableHeader>
                         <TableRow>
-                           <TableHead>ID</TableHead>
                            <TableHead>Author</TableHead>
                            <TableHead>Book</TableHead>
                            <TableHead className="text-right">Actions</TableHead>
@@ -220,11 +209,13 @@ export function BookAuthorsList({
                         {filteredBookAuthors.length === 0 ? (
                            <TableRow>
                               <TableCell
-                                 colSpan={4}
+                                 colSpan={3}
                                  className="text-center py-8"
                               >
                                  <div className="text-muted-foreground">
-                                    No authors found for this book.
+                                    {searchTerm
+                                       ? "No book authors found matching your search."
+                                       : "No book authors found."}
                                  </div>
                               </TableCell>
                            </TableRow>
@@ -232,27 +223,21 @@ export function BookAuthorsList({
                            filteredBookAuthors.map((bookAuthor) => (
                               <TableRow key={bookAuthor.bookAuthorID}>
                                  <TableCell>
-                                    <Badge variant="secondary">
-                                       #{bookAuthor.bookAuthorID}
-                                    </Badge>
-                                 </TableCell>
-                                 <TableCell className="font-medium">
                                     <HoverCard>
                                        <HoverCardTrigger asChild>
                                           <div className="flex items-center gap-2 cursor-pointer">
                                              <User className="h-4 w-4 text-muted-foreground" />
-                                             {bookAuthor.authorName}
+                                             {bookAuthor.author}
                                           </div>
                                        </HoverCardTrigger>
                                        <HoverCardContent className="w-80">
                                           <div className="flex justify-between space-x-4">
                                              <div className="space-y-1">
                                                 <h4 className="text-sm font-semibold">
-                                                   {bookAuthor.authorName}
+                                                   {bookAuthor.author}
                                                 </h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                   Author ID:{" "}
-                                                   {bookAuthor.authorID}
+                                                   Book: {bookAuthor.title}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                    Book Author ID:{" "}
@@ -263,7 +248,7 @@ export function BookAuthorsList({
                                        </HoverCardContent>
                                     </HoverCard>
                                  </TableCell>
-                                 <TableCell>{bookAuthor.bookTitle}</TableCell>
+                                 <TableCell>{bookAuthor.title}</TableCell>
                                  <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
                                        {onView && (
@@ -339,7 +324,7 @@ export function BookAuthorsList({
                   bookAuthorToDelete && handleDelete(bookAuthorToDelete)
                }
                isDeleting={isDeleting}
-               itemName={bookAuthorToDelete?.authorName || ""}
+               itemName={bookAuthorToDelete?.author || ""}
                itemType="book author"
             />
          </Card>

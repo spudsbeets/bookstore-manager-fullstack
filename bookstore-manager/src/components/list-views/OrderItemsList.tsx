@@ -19,13 +19,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Eye, Edit, Trash2, Package } from "lucide-react";
-// import {
-//    DropdownMenu,
-//    DropdownMenuContent,
-//    DropdownMenuItem,
-//    DropdownMenuTrigger,
-// } from "@/components/ui/dropdown-menu"; // Commented out unused imports
+import { Search, Plus, Eye, Edit, Trash2, Package, Loader2 } from "lucide-react";
 import {
    HoverCard,
    HoverCardContent,
@@ -38,15 +32,21 @@ import {
    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "sonner";
+
+// Services
+import OrderItemsService from "@/services/OrderItemsService";
 
 interface OrderItem {
    orderItemID: number;
    orderID: number;
    bookID: number;
    quantity: number;
-   individualPrice: number;
-   subtotal: number;
-   bookTitle?: string; // For display purposes
+   price: number;
+   title: string;
+   orderDate: string;
+   firstName: string;
+   lastName: string;
 }
 
 interface OrderItemsListProps {
@@ -74,37 +74,30 @@ export function OrderItemsList({
    );
    const [isDeleting, setIsDeleting] = useState(false);
 
-   // Sample data for order items
-   const sampleOrderItems: OrderItem[] = [
-      {
-         orderItemID: 1,
-         orderID: orderID,
-         bookID: 1,
-         quantity: 2,
-         individualPrice: 17.99,
-         subtotal: 35.98,
-         bookTitle: "Beloved",
-      },
-      {
-         orderItemID: 2,
-         orderID: orderID,
-         bookID: 2,
-         quantity: 1,
-         individualPrice: 15.99,
-         subtotal: 15.99,
-         bookTitle: "Inherent Vice",
-      },
-   ];
-
    useEffect(() => {
       const fetchOrderItems = async () => {
          setIsLoading(true);
          try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setOrderItems(sampleOrderItems);
+            const response = await OrderItemsService.getAll();
+            // Transform the API response to match our interface
+            const transformedData = response.data.map((item: any) => ({
+               orderItemID: item.orderItemID,
+               orderID: item.orderID,
+               bookID: item.bookID,
+               quantity: item.quantity,
+               price: item.price,
+               title: item.title,
+               orderDate: item.orderDate,
+               firstName: item.firstName,
+               lastName: item.lastName,
+            }));
+            setOrderItems(transformedData);
          } catch (error) {
             console.error("Error fetching order items:", error);
+            toast.error("Failed to load order items", {
+               description: "There was an error loading the order items. Please try again.",
+               duration: Infinity,
+            });
          } finally {
             setIsLoading(false);
          }
@@ -115,25 +108,33 @@ export function OrderItemsList({
 
    const filteredOrderItems = orderItems.filter(
       (orderItem) =>
-         orderItem.bookTitle
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+         orderItem.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         orderItem.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         orderItem.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          orderItem.orderItemID.toString().includes(searchTerm)
    );
 
    const handleDelete = async (orderItem: OrderItem) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         await OrderItemsService.remove(orderItem.orderItemID);
          setOrderItems(
-            orderItems.filter((oi) => oi.orderItemID !== orderItem.orderItemID)
+            orderItems.filter(
+               (oi) => oi.orderItemID !== orderItem.orderItemID
+            )
          );
+         toast.success("Order item deleted successfully!", {
+            description: `${orderItem.title} has been removed from the order.`,
+         });
          if (onDelete) {
             onDelete(orderItem);
          }
       } catch (error) {
          console.error("Error deleting order item:", error);
+         toast.error("Failed to delete order item", {
+            description: "There was an error deleting the order item. Please try again.",
+            duration: Infinity,
+         });
       } finally {
          setIsDeleting(false);
          setOrderItemToDelete(null);
@@ -147,8 +148,8 @@ export function OrderItemsList({
                <CardTitle>Order Items</CardTitle>
             </CardHeader>
             <CardContent>
-               <div className="text-center py-8 text-muted-foreground">
-                  Loading order items...
+               <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                </div>
             </CardContent>
          </Card>
@@ -163,7 +164,7 @@ export function OrderItemsList({
                   <div>
                      <CardTitle>Order Items</CardTitle>
                      <CardDescription>
-                        Items in order #{orderID} ({orderItems.length} total)
+                        Items in this order ({orderItems.length} total)
                      </CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -175,11 +176,11 @@ export function OrderItemsList({
                                  className="flex items-center gap-2"
                               >
                                  <Plus className="h-4 w-4" />
-                                 Add Order Item to Order
+                                 Add Item to Order
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Add an existing item to this order</p>
+                              <p>Add a new item to this order</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -191,12 +192,12 @@ export function OrderItemsList({
                                  variant="outline"
                                  className="flex items-center gap-2"
                               >
-                                 <Plus className="h-4 w-4" />
-                                 Add Order Item
+                                 <Package className="h-4 w-4" />
+                                 Create Order
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
-                              <p>Create a new order item record</p>
+                              <p>Create a new order</p>
                            </TooltipContent>
                         </Tooltip>
                      )}
@@ -204,41 +205,38 @@ export function OrderItemsList({
                </div>
             </CardHeader>
             <CardContent>
-               {/* Search Bar */}
-               <div className="flex items-center space-x-2 mb-4">
-                  <div className="relative flex-1">
-                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                     <Input
-                        placeholder="Search order items..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
-                     />
+               <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                     <div className="relative flex-1">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                           placeholder="Search order items..."
+                           value={searchTerm}
+                           onChange={(e) => setSearchTerm(e.target.value)}
+                           className="pl-8"
+                        />
+                     </div>
                   </div>
-               </div>
 
-               {/* Order Items Table */}
-               <div className="rounded-md border">
                   <Table>
                      <TableHeader>
                         <TableRow>
-                           <TableHead>ID</TableHead>
                            <TableHead>Book</TableHead>
+                           <TableHead>Customer</TableHead>
                            <TableHead>Quantity</TableHead>
                            <TableHead>Price</TableHead>
-                           <TableHead>Subtotal</TableHead>
+                           <TableHead>Order Date</TableHead>
                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                      </TableHeader>
                      <TableBody>
                         {filteredOrderItems.length === 0 ? (
                            <TableRow>
-                              <TableCell
-                                 colSpan={6}
-                                 className="text-center py-8"
-                              >
+                              <TableCell colSpan={6} className="text-center py-8">
                                  <div className="text-muted-foreground">
-                                    No order items found.
+                                    {searchTerm
+                                       ? "No order items found matching your search."
+                                       : "No order items found."}
                                  </div>
                               </TableCell>
                            </TableRow>
@@ -246,42 +244,44 @@ export function OrderItemsList({
                            filteredOrderItems.map((orderItem) => (
                               <TableRow key={orderItem.orderItemID}>
                                  <TableCell>
-                                    <Badge variant="secondary">
-                                       #{orderItem.orderItemID}
-                                    </Badge>
-                                 </TableCell>
-                                 <TableCell className="font-medium">
                                     <HoverCard>
                                        <HoverCardTrigger asChild>
                                           <div className="flex items-center gap-2 cursor-pointer">
                                              <Package className="h-4 w-4 text-muted-foreground" />
-                                             {orderItem.bookTitle}
+                                             {orderItem.title}
                                           </div>
                                        </HoverCardTrigger>
                                        <HoverCardContent className="w-80">
                                           <div className="flex justify-between space-x-4">
                                              <div className="space-y-1">
                                                 <h4 className="text-sm font-semibold">
-                                                   {orderItem.bookTitle}
+                                                   {orderItem.title}
                                                 </h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                   Book ID: {orderItem.bookID}
+                                                   Order Item ID: {orderItem.orderItemID}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                   Order Item ID:{" "}
-                                                   {orderItem.orderItemID}
+                                                   Order ID: {orderItem.orderID}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                   Book ID: {orderItem.bookID}
                                                 </p>
                                              </div>
                                           </div>
                                        </HoverCardContent>
                                     </HoverCard>
                                  </TableCell>
-                                 <TableCell>{orderItem.quantity}</TableCell>
                                  <TableCell>
-                                    ${orderItem.individualPrice.toFixed(2)}
+                                    {orderItem.firstName} {orderItem.lastName}
                                  </TableCell>
                                  <TableCell>
-                                    ${orderItem.subtotal.toFixed(2)}
+                                    <Badge variant="secondary">
+                                       {orderItem.quantity}
+                                    </Badge>
+                                 </TableCell>
+                                 <TableCell>${orderItem.price}</TableCell>
+                                 <TableCell>
+                                    {new Date(orderItem.orderDate).toLocaleDateString()}
                                  </TableCell>
                                  <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -291,9 +291,7 @@ export function OrderItemsList({
                                                 <Button
                                                    variant="ghost"
                                                    size="sm"
-                                                   onClick={() =>
-                                                      onView(orderItem)
-                                                   }
+                                                   onClick={() => onView(orderItem)}
                                                 >
                                                    <Eye className="h-4 w-4" />
                                                 </Button>
@@ -309,9 +307,7 @@ export function OrderItemsList({
                                                 <Button
                                                    variant="ghost"
                                                    size="sm"
-                                                   onClick={() =>
-                                                      onEdit(orderItem)
-                                                   }
+                                                   onClick={() => onEdit(orderItem)}
                                                 >
                                                    <Edit className="h-4 w-4" />
                                                 </Button>
@@ -327,9 +323,7 @@ export function OrderItemsList({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() =>
-                                                   setOrderItemToDelete(
-                                                      orderItem
-                                                   )
+                                                   setOrderItemToDelete(orderItem)
                                                 }
                                                 className="text-destructive hover:text-destructive"
                                              >
@@ -358,10 +352,11 @@ export function OrderItemsList({
                   orderItemToDelete && handleDelete(orderItemToDelete)
                }
                isDeleting={isDeleting}
-               itemName={orderItemToDelete?.bookTitle || ""}
+               itemName={orderItemToDelete?.title || ""}
                itemType="order item"
             />
          </Card>
       </TooltipProvider>
    );
 }
+
