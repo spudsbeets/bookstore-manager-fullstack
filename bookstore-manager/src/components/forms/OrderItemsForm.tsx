@@ -281,6 +281,7 @@ export function OrderItemsForm({
                               <FormLabel>Order Item ID</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="orderItemID"
                                     {...field}
                                     value={field.value || ""}
                                     disabled
@@ -304,6 +305,7 @@ export function OrderItemsForm({
                            <FormLabel>Order ID</FormLabel>
                            <FormControl>
                               <Input
+                                 id="orderID"
                                  {...field}
                                  value={field.value || ""}
                                  disabled
@@ -385,6 +387,7 @@ export function OrderItemsForm({
                               <FormLabel>Quantity</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="quantity"
                                     type="text"
                                     inputMode="numeric"
                                     placeholder="1"
@@ -426,6 +429,7 @@ export function OrderItemsForm({
                               <FormLabel>Price per Unit</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="individualPrice"
                                     type="number"
                                     step="0.01"
                                     min="0"
@@ -496,6 +500,7 @@ export function OrderItemsForm({
                            <FormLabel>Subtotal</FormLabel>
                            <FormControl>
                               <Input
+                                 id="subtotal"
                                  type="text"
                                  inputMode="decimal"
                                  placeholder="0.00"

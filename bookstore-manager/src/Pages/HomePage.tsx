@@ -27,6 +27,7 @@ import PublishersService from "@/services/PublishersService";
 import AuthorsService from "@/services/AuthorsService";
 import GenresService from "@/services/GenresService";
 import SalesRateLocationsService from "@/services/SalesRateLocationsService";
+import BookLocationsService from "@/services/BookLocationsService";
 
 interface DashboardStats {
    books: number;
@@ -73,6 +74,7 @@ export function HomePage() {
                authorsResponse,
                genresResponse,
                salesRatesResponse,
+               bookLocationsResponse,
             ] = await Promise.all([
                CustomersService.getAll(),
                OrdersService.getAll(),
@@ -80,13 +82,15 @@ export function HomePage() {
                AuthorsService.getAll(),
                GenresService.getAll(),
                SalesRateLocationsService.getAll(),
+               BookLocationsService.getAll(),
             ]);
 
             console.log("All API calls completed successfully");
 
-            // Calculate inventory total from books
-            const inventoryTotal = booksResponse.data.reduce(
-               (sum: number, book: any) => sum + (book.inventoryQty || 0),
+            // Calculate inventory total from book-locations (actual inventory)
+            const inventoryTotal = bookLocationsResponse.data.reduce(
+               (sum: number, bookLocation: any) =>
+                  sum + (bookLocation.quantity || 0),
                0
             );
 

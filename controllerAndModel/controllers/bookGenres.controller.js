@@ -97,3 +97,16 @@ export async function getGenresForDropdown(req, res) {
       res.status(500).json({ error: "Failed to fetch genres for dropdown" });
    }
 }
+
+export async function updateForBook(req, res) {
+   try {
+      const { bookId } = req.params;
+      const { genreIds } = req.body;
+
+      await BookGenresModel.updateForBook(parseInt(bookId), genreIds);
+      res.json({ message: "Book genres updated successfully" });
+   } catch (err) {
+      console.error("Error updating book genres:", err);
+      res.status(500).json({ error: "Failed to update book genres" });
+   }
+}

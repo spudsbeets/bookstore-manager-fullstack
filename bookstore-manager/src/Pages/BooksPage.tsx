@@ -24,7 +24,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, Tags, MapPin } from "lucide-react";
+import { BookOpen, Users, Tags, MapPin, Link } from "lucide-react";
 import { type Book } from "@/services/BooksService";
 
 export function BooksPage() {
@@ -247,13 +247,20 @@ export function BooksPage() {
                         onValueChange={setActiveTab}
                         className="w-full"
                      >
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                            <TabsTrigger
                               value="details"
                               className="flex items-center gap-2"
                            >
                               <BookOpen className="h-4 w-4" />
                               Book Details
+                           </TabsTrigger>
+                           <TabsTrigger
+                              value="relationships"
+                              className="flex items-center gap-2"
+                           >
+                              <Link className="h-4 w-4" />
+                              Relationships
                            </TabsTrigger>
                            <TabsTrigger
                               value="locations"
@@ -392,6 +399,40 @@ export function BooksPage() {
                                        />
                                     </div>
                                  )}
+                              </CardContent>
+                           </Card>
+                        </TabsContent>
+
+                        <TabsContent
+                           value="relationships"
+                           className="space-y-6"
+                        >
+                           <Card>
+                              <CardHeader>
+                                 <CardTitle className="flex items-center gap-2">
+                                    <Link className="h-5 w-5" />
+                                    Book Relationships
+                                 </CardTitle>
+                                 <CardDescription>
+                                    Manage authors and genres for this book
+                                 </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                 <div className="text-center py-8">
+                                    <p className="text-muted-foreground mb-4">
+                                       Use the multi-select interface to manage
+                                       book relationships
+                                    </p>
+                                    <Button
+                                       onClick={() =>
+                                          (window.location.href = `/books/${selectedBook.bookID}/relationships`)
+                                       }
+                                       className="flex items-center gap-2"
+                                    >
+                                       <Link className="h-4 w-4" />
+                                       Manage Relationships
+                                    </Button>
+                                 </div>
                               </CardContent>
                            </Card>
                         </TabsContent>

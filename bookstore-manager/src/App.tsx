@@ -16,6 +16,7 @@ import { BookAuthorsPage } from "@/Pages/BookAuthorsPage";
 import { BookGenresPage } from "@/Pages/BookGenresPage";
 import { BookLocationsPage } from "@/Pages/BookLocationsPage";
 import { OrderItemsPage } from "@/Pages/OrderItemsPage";
+import BookRelationshipsPage from "@/Pages/BookRelationshipsPage";
 
 function App() {
    return (
@@ -44,6 +45,10 @@ function App() {
                      element={<BookLocationsPage />}
                   />
                   <Route path="/order-items" element={<OrderItemsPage />} />
+                  <Route
+                     path="/books/:id/relationships"
+                     element={<BookRelationshipsPage />}
+                  />
                </Routes>
             </div>
          </Router>

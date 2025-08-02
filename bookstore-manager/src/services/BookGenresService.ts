@@ -59,6 +59,13 @@ class BookGenresService {
    getGenresForDropdown(): Promise<AxiosResponse<any[]>> {
       return http.get("/book-genres/genres/dropdown");
    }
+
+   updateForBook(
+      bookId: number,
+      genreIds: number[]
+   ): Promise<AxiosResponse<void>> {
+      return http.put(`/book-genres/book/${bookId}`, { genreIds });
+   }
 }
 
 export default new BookGenresService();

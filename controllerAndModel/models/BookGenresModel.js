@@ -160,6 +160,26 @@ class BookGenresModel extends BaseModel {
          throw error;
       }
    }
+
+   async updateForBook(bookId, genreIds) {
+      try {
+         // First, delete all existing relationships for this book
+         const deleteQuery = `DELETE FROM BookGenres WHERE bookID = ?`;
+         await pool.query(deleteQuery, [bookId]);
+
+         // Then, insert the new relationships
+         if (genreIds && genreIds.length > 0) {
+            const insertQuery = `INSERT INTO BookGenres (bookID, genreID) VALUES ?`;
+            const values = genreIds.map((genreId) => [bookId, genreId]);
+            await pool.query(insertQuery, [values]);
+         }
+
+         return { message: "Book genres updated successfully" };
+      } catch (error) {
+         console.error("Error updating book genres:", error);
+         throw error;
+      }
+   }
 }
 
 export default new BookGenresModel();

@@ -232,6 +232,7 @@ export function OrdersForm({
                               <FormLabel>Order ID</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="orderID"
                                     {...field}
                                     value={field.value || ""}
                                     disabled
@@ -256,6 +257,7 @@ export function OrdersForm({
                               <FormLabel>Order Date</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="orderDate"
                                     type="date"
                                     {...field}
                                     disabled={isViewMode}
@@ -274,6 +276,7 @@ export function OrdersForm({
                               <FormLabel>Order Time</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="orderTime"
                                     type="time"
                                     {...field}
                                     disabled={isViewMode}
@@ -295,6 +298,7 @@ export function OrdersForm({
                               <FormLabel>Total Amount</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="total"
                                     type="number"
                                     step="0.01"
                                     placeholder="0.00"
@@ -320,6 +324,7 @@ export function OrdersForm({
                               <FormLabel>Tax Rate (%)</FormLabel>
                               <FormControl>
                                  <Input
+                                    id="taxRate"
                                     type="number"
                                     step="0.01"
                                     placeholder="0.00"

@@ -59,6 +59,13 @@ class BookAuthorsService {
    getAuthorsForDropdown(): Promise<AxiosResponse<any[]>> {
       return http.get("/book-authors/authors/dropdown");
    }
+
+   updateForBook(
+      bookId: number,
+      authorIds: number[]
+   ): Promise<AxiosResponse<void>> {
+      return http.put(`/book-authors/book/${bookId}`, { authorIds });
+   }
 }
 
 export default new BookAuthorsService();

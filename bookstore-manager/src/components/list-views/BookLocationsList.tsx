@@ -66,7 +66,8 @@ export function BookLocationsList({
       const fetchBookLocations = async () => {
          setIsLoading(true);
          try {
-            const response = await BookLocationsService.getAll();
+            // Only fetch locations for the specific book ID
+            const response = await BookLocationsService.getByBookId(bookID);
             setBookLocations(response.data);
          } catch (error) {
             console.error("Error fetching book locations:", error);
@@ -88,7 +89,7 @@ export function BookLocationsList({
          bookLocation.slocName
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-         bookLocation.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         bookLocation.quantity.toString().includes(searchTerm) ||
          bookLocation.bookLocationID.toString().includes(searchTerm)
    );
 
@@ -143,7 +144,7 @@ export function BookLocationsList({
                   <div>
                      <CardTitle>Book Locations</CardTitle>
                      <CardDescription>
-                        Storage locations for books ({bookLocations.length}{" "}
+                        Storage locations for this book ({bookLocations.length}{" "}
                         total)
                      </CardDescription>
                   </div>
@@ -199,7 +200,6 @@ export function BookLocationsList({
                      <TableHeader>
                         <TableRow>
                            <TableHead>Location</TableHead>
-                           <TableHead>Book</TableHead>
                            <TableHead>Quantity</TableHead>
                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -208,7 +208,7 @@ export function BookLocationsList({
                         {filteredBookLocations.length === 0 ? (
                            <TableRow>
                               <TableCell
-                                 colSpan={4}
+                                 colSpan={3}
                                  className="text-center py-8"
                               >
                                  <div className="text-muted-foreground">
@@ -227,7 +227,6 @@ export function BookLocationsList({
                                        {bookLocation.slocName}
                                     </div>
                                  </TableCell>
-                                 <TableCell>{bookLocation.title}</TableCell>
                                  <TableCell>{bookLocation.quantity}</TableCell>
                                  <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">

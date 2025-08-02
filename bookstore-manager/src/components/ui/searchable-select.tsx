@@ -60,7 +60,11 @@ export function SearchableSelect({
          </PopoverTrigger>
          <PopoverContent className="w-full p-0">
             <Command>
-               <CommandInput placeholder={searchPlaceholder} />
+               <CommandInput
+                  id="searchable-select-input"
+                  name="searchable-select-input"
+                  placeholder={searchPlaceholder}
+               />
                <CommandList>
                   <CommandEmpty>{emptyMessage}</CommandEmpty>
                   <CommandGroup>

@@ -33,6 +33,7 @@ export function OrdersPage() {
       "list" | "create" | "edit" | "view"
    >("list");
    const [selectedOrderItem, setSelectedOrderItem] = useState<any>(null);
+   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for list updates
 
    const viewArray = [
       "List Orders",
@@ -123,6 +124,7 @@ export function OrdersPage() {
       console.log("Save order item:", data);
       setOrderItemView("list");
       setSelectedOrderItem(null);
+      setRefreshKey((prev) => prev + 1); // Refresh the list
    };
 
    const handleOrderItemBack = () => {
@@ -136,12 +138,15 @@ export function OrdersPage() {
             <div className="mb-6">
                <h1 className="text-2xl font-bold mb-4">Orders Management</h1>
                <div className="flex flex-col items-start gap-2">
-                  <Label>View Options</Label>
+                  <Label htmlFor="view-options-select">View Options</Label>
                   <Select
                      value={selectViewOption}
                      onValueChange={handleViewChange}
                   >
-                     <SelectTrigger className="w-[200px]">
+                     <SelectTrigger
+                        id="view-options-select"
+                        className="w-[200px]"
+                     >
                         <SelectValue>{selectViewOption}</SelectValue>
                      </SelectTrigger>
                      <SelectContent>
@@ -223,10 +228,10 @@ export function OrdersPage() {
                         </TabsContent>
 
                         <TabsContent value="items" className="space-y-4">
-                           {orderItemView === "list" && (
+                           {orderItemView === "list" && selectedOrder && (
                               <OrderItemsList
                                  orderID={selectedOrder.orderID}
-                                 refreshKey={0}
+                                 refreshKey={refreshKey}
                                  onDelete={handleOrderItemDelete}
                                  onAdd={handleAddOrderItem}
                                  onEdit={handleEditOrderItem}
@@ -236,24 +241,25 @@ export function OrdersPage() {
 
                            {(orderItemView === "create" ||
                               orderItemView === "edit" ||
-                              orderItemView === "view") && (
-                              <div className="max-w-2xl mx-auto">
-                                 <div className="mb-4">
-                                    <Button
-                                       variant="outline"
-                                       onClick={handleOrderItemBack}
-                                    >
-                                       ← Back to Order Items
-                                    </Button>
+                              orderItemView === "view") &&
+                              selectedOrder && (
+                                 <div className="max-w-2xl mx-auto">
+                                    <div className="mb-4">
+                                       <Button
+                                          variant="outline"
+                                          onClick={handleOrderItemBack}
+                                       >
+                                          ← Back to Order Items
+                                       </Button>
+                                    </div>
+                                    <OrderItemsForm
+                                       mode={orderItemView}
+                                       orderID={selectedOrder.orderID}
+                                       initialData={selectedOrderItem}
+                                       onSave={handleOrderItemSave}
+                                    />
                                  </div>
-                                 <OrderItemsForm
-                                    mode={orderItemView}
-                                    orderID={selectedOrder.orderID}
-                                    initialData={selectedOrderItem}
-                                    onSave={handleOrderItemSave}
-                                 />
-                              </div>
-                           )}
+                              )}
                         </TabsContent>
                      </Tabs>
                   </div>

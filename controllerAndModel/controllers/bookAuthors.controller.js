@@ -99,3 +99,16 @@ export async function getAuthorsForDropdown(req, res) {
       res.status(500).json({ error: "Failed to fetch authors for dropdown" });
    }
 }
+
+export async function updateForBook(req, res) {
+   try {
+      const { bookId } = req.params;
+      const { authorIds } = req.body;
+
+      await BookAuthorsModel.updateForBook(parseInt(bookId), authorIds);
+      res.json({ message: "Book authors updated successfully" });
+   } catch (err) {
+      console.error("Error updating book authors:", err);
+      res.status(500).json({ error: "Failed to update book authors" });
+   }
+}

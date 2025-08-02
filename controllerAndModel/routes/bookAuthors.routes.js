@@ -17,7 +17,8 @@ bookAuthorsRouter
 // Get all authors for a specific book
 bookAuthorsRouter
    .route("/book/:bookId")
-   .get(BookAuthorsController.findByBookId);
+   .get(BookAuthorsController.findByBookId)
+   .put(BookAuthorsController.updateForBook);
 
 // Get all books for a specific author
 bookAuthorsRouter

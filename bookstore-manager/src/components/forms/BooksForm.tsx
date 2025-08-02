@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+
 import { Calendar } from "@/components/ui/calendar";
 import {
    Popover,
@@ -121,6 +122,17 @@ export function BooksForm({
       fetchData();
    }, []);
 
+   // Helper function to find ID by display name
+   const findIdByName = (
+      name: string,
+      items: any[],
+      nameField: string,
+      idField: string
+   ) => {
+      const item = items.find((item) => item[nameField] === name);
+      return item ? item[idField].toString() : "";
+   };
+
    const form = useForm<BookFormValues>({
       resolver: zodResolver(bookSchema),
       defaultValues: initialData
@@ -128,13 +140,24 @@ export function BooksForm({
               ...initialData,
               // Ensure price is a string
               price: initialData.price || "",
-              // Ensure publisher is a string
-              publisher: initialData.publisher || "",
+              // Map display names to IDs for dropdowns
+              publisher: initialData.publisher
+                 ? findIdByName(
+                      initialData.publisher,
+                      publishers,
+                      "publisherName",
+                      "publisherID"
+                   )
+                 : "",
+              authors: initialData.authors
+                 ? initialData.authors.split(", ").filter(Boolean)
+                 : [],
+              genres: initialData.genres
+                 ? initialData.genres.split(", ").filter(Boolean)
+                 : [],
               // Ensure other nullable fields are strings
               "isbn-10": initialData["isbn-10"] || "",
               "isbn-13": initialData["isbn-13"] || "",
-              authors: initialData.authors || "",
-              genres: initialData.genres || "",
            }
          : {
               title: "",
@@ -148,6 +171,29 @@ export function BooksForm({
               genres: "",
            },
    });
+
+   // Update form values when data is loaded and initialData is available
+   useEffect(() => {
+      if (
+         !isLoadingData &&
+         initialData &&
+         (publishers.length > 0 || authors.length > 0 || genres.length > 0)
+      ) {
+         form.setValue(
+            "publisher",
+            initialData.publisher
+               ? findIdByName(
+                    initialData.publisher,
+                    publishers,
+                    "publisherName",
+                    "publisherID"
+                 )
+               : ""
+         );
+         form.setValue("authors", initialData.authors || "");
+         form.setValue("genres", initialData.genres || "");
+      }
+   }, [isLoadingData, initialData, publishers, authors, genres, form]);
 
    const isCreateMode = mode === "create";
    const isEditMode = mode === "edit";
@@ -465,60 +511,6 @@ export function BooksForm({
                                  placeholder="Select a publisher"
                                  searchPlaceholder="Search publishers..."
                                  emptyMessage="No publishers found."
-                              />
-                           </FormControl>
-                           <FormMessage />
-                        </FormItem>
-                     )}
-                  />
-
-                  {/* Authors */}
-                  <FormField
-                     control={form.control}
-                     name="authors"
-                     render={({ field }) => (
-                        <FormItem>
-                           <FormLabel>Authors</FormLabel>
-                           <FormControl>
-                              <SearchableSelect
-                                 options={authors.map((author) => ({
-                                    value: author.authorID.toString(),
-                                    label: author.fullName,
-                                 }))}
-                                 value={field.value?.toString()}
-                                 onValueChange={(value) =>
-                                    field.onChange(value)
-                                 }
-                                 placeholder="Select an author"
-                                 searchPlaceholder="Search authors..."
-                                 emptyMessage="No authors found."
-                              />
-                           </FormControl>
-                           <FormMessage />
-                        </FormItem>
-                     )}
-                  />
-
-                  {/* Genres */}
-                  <FormField
-                     control={form.control}
-                     name="genres"
-                     render={({ field }) => (
-                        <FormItem>
-                           <FormLabel>Genres</FormLabel>
-                           <FormControl>
-                              <SearchableSelect
-                                 options={genres.map((genre) => ({
-                                    value: genre.genreID.toString(),
-                                    label: genre.genreName,
-                                 }))}
-                                 value={field.value?.toString()}
-                                 onValueChange={(value) =>
-                                    field.onChange(value)
-                                 }
-                                 placeholder="Select a genre"
-                                 searchPlaceholder="Search genres..."
-                                 emptyMessage="No genres found."
                               />
                            </FormControl>
                            <FormMessage />

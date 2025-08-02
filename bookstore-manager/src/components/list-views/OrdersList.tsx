@@ -35,6 +35,8 @@ import {
    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "sonner";
+import OrdersService from "@/services/OrdersService";
 
 interface Order {
    orderID: number;
@@ -47,32 +49,6 @@ interface Order {
    customerName?: string;
    salesRateLocation?: string;
 }
-
-// Sample data - replace with actual API calls
-const sampleOrders: Order[] = [
-   {
-      orderID: 1,
-      orderDate: "2025-10-01",
-      orderTime: "21:12:11",
-      total: 45.61,
-      taxRate: 4.2,
-      customerID: 1,
-      salesRateID: 1,
-      customerName: "Reggie Reggerson",
-      salesRateLocation: "Polk, Iowa",
-   },
-   {
-      orderID: 2,
-      orderDate: "2025-10-01",
-      orderTime: "21:12:11",
-      total: 61.21,
-      taxRate: 5.1,
-      customerID: 2,
-      salesRateID: 2,
-      customerName: "Gail Nightingstocks",
-      salesRateLocation: "Jerome, Idaho",
-   },
-];
 
 interface OrdersListProps {
    onView?: (order: Order) => void;
@@ -94,15 +70,43 @@ export function OrdersList({
    const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
-      // Simulate API call
+      // Fetch real data from API
       const fetchOrders = async () => {
          setIsLoading(true);
          try {
-            // Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setOrders(sampleOrders);
+            const response = await OrdersService.getAll();
+            // Transform the API response to match our interface
+            const transformedData = response.data.map((order: any) => ({
+               orderID: Number(order.orderID),
+               orderDate: order.orderDate || "",
+               orderTime: order.orderTime || "",
+               total:
+                  typeof order.total === "string"
+                     ? parseFloat(order.total) || 0
+                     : Number(order.total) || 0,
+               taxRate:
+                  typeof order.taxRate === "string"
+                     ? parseFloat(order.taxRate) || 0
+                     : Number(order.taxRate) || 0,
+               customerID: Number(order.customerID),
+               salesRateID: Number(order.salesRateID),
+               customerName:
+                  order.customerName ||
+                  `${order.firstName || ""} ${order.lastName || ""}`.trim() ||
+                  "Unknown Customer",
+               salesRateLocation:
+                  order.county && order.state
+                     ? `${order.county}, ${order.state}`
+                     : order.salesRateLocation || "Unknown Location",
+            }));
+            setOrders(transformedData);
          } catch (error) {
             console.error("Error fetching orders:", error);
+            toast.error("Failed to load orders", {
+               description:
+                  "There was an error loading the orders. Please try again.",
+               duration: Infinity,
+            });
          } finally {
             setIsLoading(false);
          }
@@ -138,25 +142,43 @@ export function OrdersList({
    };
 
    const formatPrice = (price: number) => {
-      return new Intl.NumberFormat("en-US", {
-         style: "currency",
-         currency: "USD",
-      }).format(price);
+      try {
+         return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+         }).format(price);
+      } catch (error) {
+         console.error("Error formatting price:", price, error);
+         return "$0.00";
+      }
    };
 
    const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString("en-US", {
-         year: "numeric",
-         month: "short",
-         day: "numeric",
-      });
+      try {
+         return new Date(dateString).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+         });
+      } catch (error) {
+         console.error("Error formatting date:", dateString, error);
+         return "Invalid Date";
+      }
    };
 
    const formatTime = (timeString: string) => {
-      return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
-         hour: "2-digit",
-         minute: "2-digit",
-      });
+      try {
+         return new Date(`2000-01-01T${timeString}`).toLocaleTimeString(
+            "en-US",
+            {
+               hour: "2-digit",
+               minute: "2-digit",
+            }
+         );
+      } catch (error) {
+         console.error("Error formatting time:", timeString, error);
+         return "Invalid Time";
+      }
    };
 
    if (isLoading) {
@@ -200,6 +222,8 @@ export function OrdersList({
                <div className="relative flex-1">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
+                     id="searchOrders"
+                     name="searchOrders"
                      placeholder="Search orders by customer, location, or ID..."
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}

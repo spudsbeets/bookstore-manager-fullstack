@@ -15,7 +15,10 @@ bookGenresRouter
    .delete(BookGenresController.deleteOne);
 
 // Get all genres for a specific book
-bookGenresRouter.route("/book/:bookId").get(BookGenresController.findByBookId);
+bookGenresRouter
+   .route("/book/:bookId")
+   .get(BookGenresController.findByBookId)
+   .put(BookGenresController.updateForBook);
 
 // Get all books for a specific genre
 bookGenresRouter

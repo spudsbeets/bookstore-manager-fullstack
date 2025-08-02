@@ -55,6 +55,11 @@ class BookLocationsService {
       return http.delete(`/book-locations/${id}`);
    }
 
+   // Get book locations by book ID
+   getByBookId(bookId: number): Promise<AxiosResponse<BookLocation[]>> {
+      return http.get(`/book-locations/book/${bookId}`);
+   }
+
    // Get all locations for dropdown
    getLocations(): Promise<AxiosResponse<any[]>> {
       return http.get("/locations");

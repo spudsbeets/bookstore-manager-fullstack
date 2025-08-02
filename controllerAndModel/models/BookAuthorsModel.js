@@ -118,6 +118,26 @@ class BookAuthorsModel extends BaseModel {
          throw error;
       }
    }
+
+   async updateForBook(bookId, authorIds) {
+      try {
+         // First, delete all existing relationships for this book
+         const deleteQuery = `DELETE FROM BookAuthors WHERE bookID = ?`;
+         await pool.query(deleteQuery, [bookId]);
+
+         // Then, insert the new relationships
+         if (authorIds && authorIds.length > 0) {
+            const insertQuery = `INSERT INTO BookAuthors (bookID, authorID) VALUES ?`;
+            const values = authorIds.map((authorId) => [bookId, authorId]);
+            await pool.query(insertQuery, [values]);
+         }
+
+         return { message: "Book authors updated successfully" };
+      } catch (error) {
+         console.error("Error updating book authors:", error);
+         throw error;
+      }
+   }
 }
 
 export default new BookAuthorsModel();
