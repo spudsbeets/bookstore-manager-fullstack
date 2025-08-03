@@ -47,7 +47,7 @@ DELETE FROM Books WHERE bookID = :book_ID_from_list_page;
 -- get all authors to display on the authors page
 SELECT authorID, firstName, middleName, lastName FROM Authors;
 
--- Authros
+-- Authors
 -- get all author IDs and full names to populate a dropdown
 SELECT authorID, fullName FROM Authors;
 
