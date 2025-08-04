@@ -1,0 +1,2 @@
+scp -r your_local_folder_or_file bradsean@access.engr.oregonstate.edu:~/cs340
+ssh bradsean@access.engr.oregonstate.edu

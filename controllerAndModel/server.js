@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-const PORT = 3001;
+const PORT = 60730;
 
 // Database
 import db from "./database/db-connector.js";

@@ -2,7 +2,7 @@
 import axios, { type AxiosInstance } from "axios";
 
 const http: AxiosInstance = axios.create({
-   baseURL: "http://localhost:3001/api/v1", // Backend is running on port 3001
+   baseURL: "http://classwork.engr.oregonstate.edu:60730/api/v1", // Backend is running on port 60730
    headers: {
       "Content-Type": "application/json",
    },

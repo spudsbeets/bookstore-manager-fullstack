@@ -5,9 +5,9 @@
    "type": "module",
    "main": "server.js",
    "scripts": {
-      "start": "node server.js",
       "dev": "nodemon server.js",
-      "app": "node app.js"
+      "prod": "npx forever start server.js",
+      "stop_prod": "npx forever stop server.js"
    },
    "author": "",
    "license": "ISC",
