@@ -28,7 +28,17 @@ export async function create(req, res) {
       res.status(201).json(bookGenre);
    } catch (err) {
       console.error("Error creating book genre:", err);
-      res.status(400).json({ error: "Failed to create book genre" });
+
+      // Check if it's a duplicate relationship error
+      if (err.message.includes("already exists")) {
+         res.status(409).json({
+            error: err.message,
+            suggestion:
+               "This genre is already associated with this book. Please choose a different genre or book.",
+         });
+      } else {
+         res.status(400).json({ error: "Failed to create book genre" });
+      }
    }
 }
 

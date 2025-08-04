@@ -1,3 +1,14 @@
+/**
+ * @date August 4, 2025
+ * @based_on The Node.js project architecture, including the controller and model structure, from the CS 290 course materials.
+ *
+ * @degree_of_originality The foundational project architecture, which separates concerns into `controllers`, `models`, and `database` modules, is based on the examples and starter code provided in the CS 290 coursework. The specific implementation of each model (e.g., AuthorsModel.js, BooksModel.js) and controller (e.g., authors.controller.js, books.controller.js) to handle the application's unique business logic and database interactions is original work.
+ *
+ * @source_url The architectural concepts and structure were derived from course modules and examples, similar to those found at https://canvas.oregonstate.edu/courses/1967288/pages/exploration-designing-web-apps-using-mvc-and-rest-api?module_item_id=24465416
+ *
+ * @ai_tool_usage The controllers were generated using Cursor, an AI code editor. My own controller was provided as a template and schema for the generation, and I subsequently refined the output.
+ */
+
 import BookAuthorsModel from "../models/BookAuthorsModel.js";
 
 export async function findAll(req, res) {
@@ -28,7 +39,17 @@ export async function create(req, res) {
       res.status(201).json(bookAuthor);
    } catch (err) {
       console.error("Error creating book author:", err);
-      res.status(400).json({ error: "Failed to create book author" });
+
+      // Check if it's a duplicate relationship error
+      if (err.message.includes("already exists")) {
+         res.status(409).json({
+            error: err.message,
+            suggestion:
+               "This author is already associated with this book. Please choose a different author or book.",
+         });
+      } else {
+         res.status(400).json({ error: "Failed to create book author" });
+      }
    }
 }
 

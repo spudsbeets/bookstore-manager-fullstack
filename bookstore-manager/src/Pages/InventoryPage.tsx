@@ -1,5 +1,15 @@
+/**
+ * @date August 4, 2025
+ * @based_on The page layouts and component compositions from the official shadcn/ui examples and a personal inventory project from CS 361.
+ *
+ * @degree_of_originality The core layout for these pages is adapted from shadcn/ui examples and patterns from a prior project. They have been modified to display this application's specific data and integrated with the project's data-fetching logic and state management.
+ *
+ * @source_url The official shadcn/ui examples (e.g., https://ui.shadcn.com/examples/dashboard) and a prior personal project for CS 361.
+ *
+ * @ai_tool_usage The page components were generated using Cursor. The generation was guided by adapting the official shadcn/ui examples and by providing code from a personal CS 361 inventory project as a template. The generated code was then refined and customized for this application.
+ */
+
 import { useState } from "react";
-// import { Button } from "@/components/ui/button"; // Commented out unused import
 import { InventoryForm } from "@/components/InventoryForm";
 import { InventoryList } from "@/components/list-views/InventoryList";
 import {

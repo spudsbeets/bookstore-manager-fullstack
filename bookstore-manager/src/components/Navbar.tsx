@@ -1,12 +1,17 @@
+/**
+ * @date August 4, 2025
+ * @based_on The design and component structure from a navbar on a previous personal website project.
+ *
+ * @degree_of_originality This component is an adaptation of a prior implementation. It has been updated to use this project's specific navigation links, theme-switching functionality, and shadcn/ui components.
+ *
+ * @source_url N/A - Based on a prior personal project.
+ *
+ * @ai_tool_usage The navbar component was created using Cursor, an AI code editor, based on the prior project's design. The generated code was then customized for this application.
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
 import {
    BookOpen,
@@ -18,12 +23,7 @@ import {
    Tags,
    PenTool,
    Package,
-   Plus,
-   Eye,
-   Edit,
-   Trash2,
    Menu,
-   ChevronDown,
    LayoutGrid,
    List,
    Database,
@@ -32,20 +32,14 @@ import type { LucideIcon } from "lucide-react";
 
 interface DatabaseEntity {
    name: string;
-   icon: any;
+   icon: LucideIcon;
    baseUrl: string;
-   operations: {
-      name: string;
-      icon: any;
-      action: string;
-      url: string;
-   }[];
 }
 
 interface LayoutMode {
    id: string;
    name: string;
-   icon: any;
+   icon: LucideIcon;
    className: string;
    containerClass: string;
 }
@@ -55,7 +49,6 @@ export function Navbar() {
    const [currentLayoutMode, setCurrentLayoutMode] =
       useState<string>("contained");
    const navigate = useNavigate();
-   // const location = useLocation(); // Commented out unused variable
 
    const layoutModes: LayoutMode[] = [
       {
@@ -106,43 +99,22 @@ export function Navbar() {
       "Order Items": Package,
    };
 
-   const operations = [
-      { namePrefix: "View All", action: "view", icon: Eye, urlSuffix: "" },
-      { namePrefix: "Add New", action: "add", icon: Plus, urlSuffix: "/add" },
-      { namePrefix: "Edit", action: "edit", icon: Edit, urlSuffix: "/edit" },
-      {
-         namePrefix: "Delete",
-         action: "delete",
-         icon: Trash2,
-         urlSuffix: "/delete",
-      },
-   ];
-
    const databaseEntities: DatabaseEntity[] = tableNames.map((name) => {
       const baseUrl = `/${name.toLowerCase().replace(/\s+/g, "-")}`;
       return {
          name,
          icon: iconMap[name] || Database, // fallback icon
          baseUrl,
-         operations: operations.map(
-            ({ namePrefix, action, icon, urlSuffix }) => ({
-               name: `${namePrefix} ${name}`,
-               action,
-               icon,
-               url: `${baseUrl}${urlSuffix}`,
-            })
-         ),
       };
    });
-   const handleOperation = (_entityName: string, operation: any) => {
-      console.log(`Navigating to: ${operation.url}`);
-      navigate(operation.url);
-   };
 
-   const handleMobileNavigation = (entity: DatabaseEntity) => {
-      console.log(`Navigating to: ${entity.baseUrl}`);
-      navigate(entity.baseUrl);
-      setIsMobileMenuOpen(false);
+   const handleNavigation = (url: string) => {
+      console.log(`Navigating to: ${url}`);
+      navigate(url);
+      // Close mobile menu if it's open
+      if (isMobileMenuOpen) {
+         setIsMobileMenuOpen(false);
+      }
    };
 
    const handleLayoutToggle = () => {
@@ -151,7 +123,6 @@ export function Navbar() {
       );
       const nextIndex = (currentIndex + 1) % layoutModes.length;
       const nextMode = layoutModes[nextIndex];
-
       setCurrentLayoutMode(nextMode.id);
       console.log(`Layout changed to: ${nextMode.name}`);
    };
@@ -181,7 +152,6 @@ export function Navbar() {
 
                {/* Right side - Layout Toggle, Theme Toggle, and Mobile Menu */}
                <div className="flex items-center space-x-2">
-                  {/* Layout Toggle */}
                   <Button
                      variant="ghost"
                      size="sm"
@@ -190,14 +160,8 @@ export function Navbar() {
                   >
                      <currentLayout.icon className="h-4 w-4" />
                   </Button>
-
-                  {/* Divider */}
                   <div className="h-6 w-px bg-border" />
-
-                  {/* Theme Toggle */}
                   <ModeToggle />
-
-                  {/* Mobile Menu Button */}
                   <div className="md:hidden">
                      <Button
                         variant="ghost"
@@ -210,43 +174,27 @@ export function Navbar() {
                </div>
             </div>
 
-            {/* Second Row - Navigation Items */}
+            {/* Second Row - Navigation Items (Refactored) */}
             <div className="hidden md:flex items-center justify-center py-2 border-t">
                <div className="flex items-center space-x-2 flex-wrap justify-center">
                   <Button
                      variant="ghost"
-                     onClick={() => navigate("/")}
+                     onClick={() => handleNavigation("/")}
                      className="text-sm font-medium hover:text-primary"
                   >
                      Home
                   </Button>
-
+                  {}
                   {databaseEntities.map((entity) => (
-                     <DropdownMenu key={entity.name}>
-                        <DropdownMenuTrigger asChild>
-                           <Button
-                              variant="ghost"
-                              className="flex items-center space-x-1"
-                           >
-                              <entity.icon className="h-4 w-4" />
-                              <span>{entity.name}</span>
-                              <ChevronDown className="h-3 w-3" />
-                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                           {entity.operations.map((operation) => (
-                              <DropdownMenuItem
-                                 key={operation.action}
-                                 onClick={() =>
-                                    handleOperation(entity.name, operation)
-                                 }
-                              >
-                                 <operation.icon className="mr-2 h-4 w-4" />
-                                 {operation.name}
-                              </DropdownMenuItem>
-                           ))}
-                        </DropdownMenuContent>
-                     </DropdownMenu>
+                     <Button
+                        key={entity.name}
+                        variant="ghost"
+                        onClick={() => handleNavigation(entity.baseUrl)}
+                        className="flex items-center space-x-1 text-sm font-medium hover:text-primary"
+                     >
+                        <entity.icon className="h-4 w-4" />
+                        <span>{entity.name}</span>
+                     </Button>
                   ))}
                </div>
             </div>
@@ -261,10 +209,7 @@ export function Navbar() {
                      <Button
                         variant="ghost"
                         className="w-full justify-start"
-                        onClick={() => {
-                           navigate("/");
-                           setIsMobileMenuOpen(false);
-                        }}
+                        onClick={() => handleNavigation("/")}
                      >
                         Home
                      </Button>
@@ -273,7 +218,7 @@ export function Navbar() {
                            key={entity.name}
                            variant="ghost"
                            className="w-full justify-start"
-                           onClick={() => handleMobileNavigation(entity)}
+                           onClick={() => handleNavigation(entity.baseUrl)}
                         >
                            <entity.icon className="mr-2 h-4 w-4" />
                            {entity.name}

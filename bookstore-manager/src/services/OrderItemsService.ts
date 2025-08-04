@@ -34,7 +34,7 @@ class OrderItemsService {
    }
 
    getByOrderId(orderId: number): Promise<AxiosResponse<OrderItem[]>> {
-      return http.get(`/order-items?orderId=${orderId}`);
+      return http.get(`/order-items/order/${orderId}`);
    }
 
    create(data: CreateOrderItemDTO): Promise<AxiosResponse<OrderItem>> {

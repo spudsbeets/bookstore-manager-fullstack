@@ -89,7 +89,12 @@ export function OrderItemsList({
       const fetchOrderItems = async () => {
          setIsLoading(true);
          try {
-            const response = await OrderItemsService.getAll();
+            // If orderID is 0, fetch all order items, otherwise filter by order ID
+            const response =
+               orderID === 0
+                  ? await OrderItemsService.getAll()
+                  : await OrderItemsService.getByOrderId(orderID);
+
             // Transform the API response to match our interface
             const transformedData = response.data.map((item: any) => ({
                orderItemID: item.orderItemID,

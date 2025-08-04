@@ -1,3 +1,14 @@
+/**
+ * @date August 4, 2025
+ * @based_on The page layouts and component compositions from the official shadcn/ui examples.
+ *
+ * @degree_of_originality The core layout for these pages is adapted from the shadcn/ui examples. They have been modified to display this application's specific data and integrated with the project's data-fetching logic and state management.
+ *
+ * @source_url The official shadcn/ui examples, such as the one found at https://ui.shadcn.com/examples/dashboard
+ *
+ * @ai_tool_usage The page components were generated using Cursor by adapting the official shadcn/ui examples. The generated code was then refined and customized for this application.
+ */
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BooksForm } from "@/components/forms/BooksForm";
@@ -24,7 +35,7 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, Tags, MapPin, Link } from "lucide-react";
+import { BookOpen, Users, Tags, MapPin /*Link*/ } from "lucide-react";
 import { type Book } from "@/services/BooksService";
 
 export function BooksPage() {
@@ -255,13 +266,13 @@ export function BooksPage() {
                               <BookOpen className="h-4 w-4" />
                               Book Details
                            </TabsTrigger>
-                           <TabsTrigger
+                           {/* <TabsTrigger
                               value="relationships"
                               className="flex items-center gap-2"
                            >
                               <Link className="h-4 w-4" />
                               Relationships
-                           </TabsTrigger>
+                           </TabsTrigger> */}
                            <TabsTrigger
                               value="locations"
                               className="flex items-center gap-2"
@@ -292,6 +303,7 @@ export function BooksPage() {
                                           ? handleDelete
                                           : undefined
                                     }
+                                    onEdit={() => setCurrentView("edit")}
                                  />
                               </CardContent>
                            </Card>
@@ -403,7 +415,7 @@ export function BooksPage() {
                            </Card>
                         </TabsContent>
 
-                        <TabsContent
+                        {/* <TabsContent
                            value="relationships"
                            className="space-y-6"
                         >
@@ -435,7 +447,7 @@ export function BooksPage() {
                                  </div>
                               </CardContent>
                            </Card>
-                        </TabsContent>
+                        </TabsContent> */}
 
                         <TabsContent value="locations" className="space-y-4">
                            <Card>

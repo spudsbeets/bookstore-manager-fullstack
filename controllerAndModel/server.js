@@ -1,3 +1,13 @@
+/**
+ * @date August 4, 2025
+ * @based_on The custom backend architecture designed for this project, which utilizes Express.js routes and routers to handle API requests.
+ *
+ * @degree_of_originality The routing implementation is original work, designed to map HTTP requests to the appropriate controller logic. While it uses standard Express.js conventions, the specific structure and endpoint organization are unique to this application's architecture.
+ *
+ * @source_url N/A - This implementation is based on the project's custom architecture.
+ *
+ * @ai_tool_usage The route files were scaffolded using Cursor, an AI code editor, based on the defined API endpoints and controller structure. The generated code was then reviewed and customized.
+ */
 // Express
 import express from "express";
 import fs from "fs";
@@ -64,7 +74,7 @@ app.post("/api/v1/reset", async (req, res) => {
    try {
       console.log("Resetting database...");
 
-      const ddlPath = path.join(__dirname, "..", "DDL.sql");
+      const ddlPath = path.join(__dirname, "..", "reset.sql");
       const ddlScript = fs.readFileSync(ddlPath, "utf8");
 
       // Split the script into individual statements and execute them

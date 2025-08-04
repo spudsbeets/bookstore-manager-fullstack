@@ -1,3 +1,14 @@
+/**
+ * @date August 4, 2025
+ * @based_on The page layouts and component compositions from the official shadcn/ui examples.
+ *
+ * @degree_of_originality The core layout for these pages is adapted from the shadcn/ui examples. They have been modified to display this application's specific data and integrated with the project's data-fetching logic and state management.
+ *
+ * @source_url The official shadcn/ui examples, such as the one found at https://ui.shadcn.com/examples/dashboard
+ *
+ * @ai_tool_usage The page components were generated using Cursor by adapting the official shadcn/ui examples. The generated code was then refined and customized for this application.
+ */
+
 import { useState, useEffect } from "react";
 import {
    Card,
@@ -57,18 +68,9 @@ export function HomePage() {
    useEffect(() => {
       const fetchDashboardData = async () => {
          try {
-            console.log("Starting to fetch dashboard data...");
-            setIsLoading(true);
-            setError(null);
-
-            // Test with just one API call first
-            console.log("Testing Books API...");
-            const booksResponse = await BooksService.getAll();
-            console.log("Books API successful:", booksResponse.data.length);
-
-            // Now try all APIs
             const [
                customersResponse,
+               booksResponse,
                ordersResponse,
                publishersResponse,
                authorsResponse,
@@ -77,6 +79,7 @@ export function HomePage() {
                bookLocationsResponse,
             ] = await Promise.all([
                CustomersService.getAll(),
+               BooksService.getAll(),
                OrdersService.getAll(),
                PublishersService.getAll(),
                AuthorsService.getAll(),

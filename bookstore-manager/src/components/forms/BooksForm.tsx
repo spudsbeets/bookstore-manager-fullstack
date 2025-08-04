@@ -1,3 +1,14 @@
+/**
+ * @date August 4, 2025
+ * @based_on The form architecture from a CS 361 inventory application project. This includes the use of shadcn/ui components, TypeScript, Zod for schema validation, and React Hook Form for state management.
+ *
+ * @degree_of_originality The foundational pattern for creating forms—defining a Zod schema, using the zodResolver with react-hook-form, and composing the UI with shadcn/ui components—is adapted from the prior project. However, each form's specific schema, fields, and submission logic have been developed uniquely for this application's requirements.
+ *
+ * @source_url N/A - Based on a prior personal project for CS 361.
+ *
+ * @ai_tool_usage The form components were scaffolded using Cursor, an AI code editor, based on the established architecture and the specific data model for each page. The generated code was then refined and customized.
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +42,14 @@ import {
    CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Edit, Eye, Trash2, CalendarIcon } from "lucide-react";
+import {
+   CheckCircle,
+   Edit,
+   Eye,
+   Trash2,
+   CalendarIcon,
+   Pencil,
+} from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -80,6 +98,7 @@ interface BooksFormProps {
    initialData?: Book;
    onSave?: (data: BookFormValues) => void;
    onDelete?: ((book: Book) => void) | (() => void);
+   onEdit?: () => void; // <-- add this
 }
 
 export function BooksForm({
@@ -87,6 +106,7 @@ export function BooksForm({
    initialData,
    onSave,
    onDelete,
+   onEdit,
 }: BooksFormProps) {
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [showSuccess, setShowSuccess] = useState(false);
@@ -149,12 +169,8 @@ export function BooksForm({
                       "publisherID"
                    )
                  : "",
-              authors: initialData.authors
-                 ? initialData.authors.split(", ").filter(Boolean)
-                 : [],
-              genres: initialData.genres
-                 ? initialData.genres.split(", ").filter(Boolean)
-                 : [],
+              authors: initialData.authors || "",
+              genres: initialData.genres || "",
               // Ensure other nullable fields are strings
               "isbn-10": initialData["isbn-10"] || "",
               "isbn-13": initialData["isbn-13"] || "",
@@ -329,6 +345,18 @@ export function BooksForm({
                {mode === "edit" && <Edit className="h-5 w-5" />}
                {mode === "view" && <Eye className="h-5 w-5" />}
                {getTitle()}
+               {mode === "view" && onEdit && (
+                  <Button
+                     type="button"
+                     size="icon"
+                     variant="ghost"
+                     aria-label="Edit Book"
+                     className="ml-2"
+                     onClick={onEdit}
+                  >
+                     <Pencil className="h-4 w-4" />
+                  </Button>
+               )}
             </CardTitle>
             <CardDescription>{getDescription()}</CardDescription>
          </CardHeader>

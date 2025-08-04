@@ -1,4 +1,15 @@
-import { useState } from "react";
+/**
+ * @date August 4, 2025
+ * @based_on The form architecture from a CS 361 inventory application project. This includes the use of shadcn/ui components, TypeScript, Zod for schema validation, and React Hook Form for state management.
+ *
+ * @degree_of_originality The foundational pattern for creating forms—defining a Zod schema, using the zodResolver with react-hook-form, and composing the UI with shadcn/ui components—is adapted from the prior project. However, each form's specific schema, fields, and submission logic have been developed uniquely for this application's requirements.
+ *
+ * @source_url N/A - Based on a prior personal project for CS 361.
+ *
+ * @ai_tool_usage The form components were scaffolded using Cursor, an AI code editor, based on the established architecture and the specific data model for each page. The generated code was then refined and customized.
+ */
+
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,45 +41,8 @@ import {
 } from "@/components/ui/card";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { ShoppingCart } from "lucide-react";
-
-// Sample data - define locally since they're not exported
-const sampleCustomers = [
-   {
-      customerID: 1,
-      firstName: "Reggie",
-      lastName: "Reggerson",
-      email: "regreg@reg.com",
-      phoneNumber: "3333888902",
-   },
-   {
-      customerID: 2,
-      firstName: "Gail",
-      lastName: "Nightingstocks",
-      email: "gailsmail@gmail.com",
-      phoneNumber: "2295730384",
-   },
-];
-
-const sampleSalesRates = [
-   {
-      salesRateID: 1,
-      taxRate: 4.2,
-      county: "Polk",
-      state: "Iowa",
-   },
-   {
-      salesRateID: 2,
-      taxRate: 5.1,
-      county: "Jerome",
-      state: "Idaho",
-   },
-   {
-      salesRateID: 3,
-      taxRate: 8.625,
-      county: "San Francisco",
-      state: "California",
-   },
-];
+import CustomersService from "@/services/CustomersService";
+import SalesRateLocationsService from "@/services/SalesRateLocationsService";
 
 const customerOrderSchema = z.object({
    customerID: z.number(),
@@ -98,6 +72,26 @@ export function CustomerOrdersForm({
 }: CustomerOrdersFormProps) {
    const [isDeleting, setIsDeleting] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+   const [customers, setCustomers] = useState<any[]>([]);
+   const [salesRates, setSalesRates] = useState<any[]>([]);
+
+   // Fetch customers and sales rates data
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const [customersResponse, salesRatesResponse] = await Promise.all([
+               CustomersService.getAll(),
+               SalesRateLocationsService.getAll(),
+            ]);
+            setCustomers(customersResponse.data);
+            setSalesRates(salesRatesResponse.data);
+         } catch (error) {
+            console.error("Error fetching data:", error);
+         }
+      };
+
+      fetchData();
+   }, []);
 
    const form = useForm<CustomerOrderFormData>({
       resolver: zodResolver(customerOrderSchema),
@@ -131,11 +125,11 @@ export function CustomerOrdersForm({
    };
 
    // Get the current customer and sales rate details for display
-   const currentCustomer = sampleCustomers.find(
+   const currentCustomer = customers.find(
       (customer: any) => customer.customerID === customerID
    );
    const selectedSalesRate = initialData
-      ? sampleSalesRates.find(
+      ? salesRates.find(
            (rate: any) => rate.salesRateID === initialData.salesRateID
         )
       : null;
@@ -261,13 +255,12 @@ export function CustomerOrdersForm({
                                        </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                       {sampleSalesRates.map((rate: any) => (
+                                       {salesRates.map((rate: any) => (
                                           <SelectItem
                                              key={rate.salesRateID}
                                              value={rate.salesRateID.toString()}
                                           >
-                                             {rate.county}, {rate.state} (
-                                             {rate.taxRate}%)
+                                             {rate.location} ({rate.taxRate}%)
                                           </SelectItem>
                                        ))}
                                     </SelectContent>
@@ -285,8 +278,7 @@ export function CustomerOrdersForm({
                               <Label>Sales Tax Location</Label>
                               <div className="p-3 bg-muted rounded-md">
                                  <div className="font-medium">
-                                    {selectedSalesRate.county},{" "}
-                                    {selectedSalesRate.state}
+                                    {selectedSalesRate.location}
                                  </div>
                                  <div className="text-sm text-muted-foreground">
                                     Tax Rate: {selectedSalesRate.taxRate}%

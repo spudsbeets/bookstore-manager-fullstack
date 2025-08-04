@@ -1,3 +1,14 @@
+/**
+ * @date August 4, 2025
+ * @based_on The form architecture from a CS 361 inventory application project. This includes the use of shadcn/ui components, TypeScript, Zod for schema validation, and React Hook Form for state management.
+ *
+ * @degree_of_originality The foundational pattern for creating forms—defining a Zod schema, using the zodResolver with react-hook-form, and composing the UI with shadcn/ui components—is adapted from the prior project. However, each form's specific schema, fields, and submission logic have been developed uniquely for this application's requirements.
+ *
+ * @source_url N/A - Based on a prior personal project for CS 361.
+ *
+ * @ai_tool_usage The form components were scaffolded using Cursor, an AI code editor, based on the established architecture and the specific data model for each page. The generated code was then refined and customized.
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -26,10 +37,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import SalesRateLocationsService from "@/services/SalesRateLocationsService";
+import { toast } from "sonner";
 
 const salesRateLocationSchema = z.object({
    salesRateID: z.number().optional(),
-   location: z.string().min(1, "Location is required"),
+   county: z.string().min(1, "County is required"),
+   state: z.string().min(1, "State is required"),
    taxRate: z.string().min(1, "Tax rate is required"),
 });
 
@@ -37,7 +50,7 @@ type SalesRateLocationFormValues = z.infer<typeof salesRateLocationSchema>;
 
 interface SalesRateLocationsFormProps {
    mode: "create" | "edit" | "view";
-   initialData?: SalesRateLocationFormValues;
+   initialData?: SalesRateLocationFormValues & { location?: string };
    onSave?: (data: SalesRateLocationFormValues) => void;
    onDelete?: () => void;
 }
@@ -55,10 +68,22 @@ export function SalesRateLocationsForm({
 
    const form = useForm<SalesRateLocationFormValues>({
       resolver: zodResolver(salesRateLocationSchema),
-      defaultValues: initialData || {
-         location: "",
-         taxRate: "",
-      },
+      defaultValues: initialData
+         ? {
+              ...initialData,
+              // Parse location into county and state if it exists
+              county: initialData.location
+                 ? initialData.location.split(", ")[0] || ""
+                 : "",
+              state: initialData.location
+                 ? initialData.location.split(", ")[1] || ""
+                 : "",
+           }
+         : {
+              county: "",
+              state: "",
+              taxRate: "",
+           },
    });
 
    const isCreateMode = mode === "create";
@@ -68,15 +93,23 @@ export function SalesRateLocationsForm({
    async function onSubmit(data: SalesRateLocationFormValues) {
       setIsSubmitting(true);
       try {
+         // Convert separate fields to location format for API
+         const apiData = {
+            location: `${data.county}, ${data.state}`,
+            taxRate: data.taxRate,
+         };
+
          if (isCreateMode) {
             // Create new sales rate location
-            await SalesRateLocationsService.create(data);
+            await SalesRateLocationsService.create(apiData);
+            toast.success("Sales rate location created successfully!");
          } else if (isEditMode && initialData?.salesRateID) {
             // Update existing sales rate location
             await SalesRateLocationsService.update(
                initialData.salesRateID,
-               data
+               apiData
             );
+            toast.success("Sales rate location updated successfully!");
          }
 
          if (onSave) {
@@ -86,7 +119,7 @@ export function SalesRateLocationsForm({
          setTimeout(() => setShowSuccess(false), 3000);
       } catch (error) {
          console.error("Error saving sales rate location:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to save sales rate location. Please try again.");
       } finally {
          setIsSubmitting(false);
       }
@@ -97,13 +130,14 @@ export function SalesRateLocationsForm({
       try {
          if (initialData?.salesRateID) {
             await SalesRateLocationsService.remove(initialData.salesRateID);
+            toast.success("Sales rate location deleted successfully!");
          }
          if (onDelete) {
             onDelete();
          }
       } catch (error) {
          console.error("Error deleting sales rate location:", error);
-         // You might want to show an error message to the user here
+         toast.error("Failed to delete sales rate location. Please try again.");
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);
@@ -187,20 +221,45 @@ export function SalesRateLocationsForm({
                      />
                   )}
 
-                  {/* Location Field */}
+                  {/* County Field */}
                   <FormField
                      control={form.control}
-                     name="location"
+                     name="county"
                      render={({ field }) => (
                         <FormItem>
-                           <FormLabel>Location</FormLabel>
+                           <FormLabel>County</FormLabel>
                            <FormControl>
                               <Input
-                                 placeholder="Enter location (e.g., County, State)"
+                                 placeholder="Enter county"
                                  {...field}
                                  disabled={isViewMode}
                               />
                            </FormControl>
+                           <FormDescription>
+                              The county for this location
+                           </FormDescription>
+                           <FormMessage />
+                        </FormItem>
+                     )}
+                  />
+
+                  {/* State Field */}
+                  <FormField
+                     control={form.control}
+                     name="state"
+                     render={({ field }) => (
+                        <FormItem>
+                           <FormLabel>State</FormLabel>
+                           <FormControl>
+                              <Input
+                                 placeholder="Enter state"
+                                 {...field}
+                                 disabled={isViewMode}
+                              />
+                           </FormControl>
+                           <FormDescription>
+                              The state for this location
+                           </FormDescription>
                            <FormMessage />
                         </FormItem>
                      )}
@@ -263,7 +322,7 @@ export function SalesRateLocationsForm({
             onOpenChange={setShowDeleteDialog}
             onConfirm={handleDelete}
             isDeleting={isDeleting}
-            itemName={initialData?.location || ""}
+            itemName={initialData?.county || ""}
             itemType="sales rate location"
          />
       </Card>

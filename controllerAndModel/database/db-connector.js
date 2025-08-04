@@ -1,4 +1,13 @@
-// File: database/db-connector.js
+/**
+ * @date August 4, 2025
+ * @based_on The database connection module from the CS 290 Canvas Exploration for Node.js.
+ *
+ * @degree_of_originality The code in this file is a direct adaptation of the source code provided in the course materials for establishing a database connection. Changes were minimal and primarily involved configuring credentials.
+ *
+ * @source_url The CS 290 Canvas Exploration module on setting up a database connection.
+ *
+ * @ai_tool_usage No AI tools were used for the creation of this specific file.
+ */
 
 // Get an instance of mysql we can use in the app
 import mysql from "mysql2";

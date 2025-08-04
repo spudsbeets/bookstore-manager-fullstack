@@ -31,58 +31,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-// Sample data based on actual database schema - commented out unused variable
-// const sampleBooks = [
-//    {
-//       bookID: 1,
-//       title: "Inherent Vice",
-//       inventoryQty: 5,
-//       price: 15.99,
-//       inStock: 1,
-//       publicationDate: "2009-08-04",
-//       "isbn-10": "0143126850",
-//       "isbn-13": "9780143126850",
-//       publisherID: 2,
-//       publisherName: "Penguin Books",
-//    },
-//    {
-//       bookID: 2,
-//       title: "Beloved",
-//       inventoryQty: 7,
-//       price: 17.99,
-//       inStock: 1,
-//       publicationDate: "1987-09-01",
-//       "isbn-10": "1400033416",
-//       "isbn-13": "9781400033416",
-//       publisherID: 1,
-//       publisherName: "Vintage International",
-//    },
-//    {
-//       bookID: 3,
-//       title: "The Talisman",
-//       inventoryQty: 6,
-//       price: 18.99,
-//       inStock: 1,
-//       publicationDate: "1984-11-08",
-//       "isbn-10": "0670691992",
-//       "isbn-13": "9780670691999",
-//       publisherID: 3,
-//       publisherName: "Viking Press",
-//    },
-//    {
-//       bookID: 4,
-//       title: "Good Omens",
-//       inventoryQty: 8,
-//       price: 16.99,
-//       inStock: 1,
-//       publicationDate: "2006-11-28",
-//       "isbn-10": "0060853980",
-//       "isbn-13": "9780060853983",
-//       publisherID: 4,
-//       publisherName: "William Morrow",
-//    },
-// ];
-
 const sampleLocations = [
    { slocID: 1, slocName: "Orchard" },
    { slocID: 2, slocName: "Sunwillow" },
@@ -234,8 +182,15 @@ export function InventoryForm() {
                                        onChange={(e) => {
                                           const value = e.target.value;
                                           // Only allow numbers and one decimal point
-                                          if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                                             field.onChange(value === "" ? 0 : parseFloat(value) || 0);
+                                          if (
+                                             value === "" ||
+                                             /^\d*\.?\d*$/.test(value)
+                                          ) {
+                                             field.onChange(
+                                                value === ""
+                                                   ? 0
+                                                   : parseFloat(value) || 0
+                                             );
                                           }
                                        }}
                                     />
@@ -263,8 +218,15 @@ export function InventoryForm() {
                                        onChange={(e) => {
                                           const value = e.target.value;
                                           // Only allow numbers
-                                          if (value === "" || /^\d+$/.test(value)) {
-                                             field.onChange(value === "" ? 0 : parseInt(value) || 0);
+                                          if (
+                                             value === "" ||
+                                             /^\d+$/.test(value)
+                                          ) {
+                                             field.onChange(
+                                                value === ""
+                                                   ? 0
+                                                   : parseInt(value) || 0
+                                             );
                                           }
                                        }}
                                     />
@@ -440,8 +402,15 @@ export function InventoryForm() {
                                           onChange={(e) => {
                                              const value = e.target.value;
                                              // Only allow numbers
-                                             if (value === "" || /^\d+$/.test(value)) {
-                                                field.onChange(value === "" ? 0 : parseInt(value) || 0);
+                                             if (
+                                                value === "" ||
+                                                /^\d+$/.test(value)
+                                             ) {
+                                                field.onChange(
+                                                   value === ""
+                                                      ? 0
+                                                      : parseInt(value) || 0
+                                                );
                                              }
                                           }}
                                        />

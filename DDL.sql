@@ -173,6 +173,7 @@
   `slocID` INT NOT NULL,
   `quantity` INT NOT NULL,
   PRIMARY KEY (`bookLocationID`),
+  UNIQUE INDEX `unique_book_location` (`bookID`, `slocID`),
   INDEX `fk_BookLocations_Books1_idx` (`bookID` ASC) VISIBLE,
   INDEX `fk_BookLocations_SLOCS1_idx` (`slocID` ASC) VISIBLE,
   CONSTRAINT `fk_BookLocations_Books1`
@@ -197,6 +198,7 @@
   `authorID` INT NOT NULL,
   `bookID` INT NOT NULL,
   PRIMARY KEY (`bookAuthorID`),
+  UNIQUE INDEX `unique_book_author` (`bookID`, `authorID`),
   INDEX `fk_BookAuthors_Authors1_idx` (`authorID` ASC) VISIBLE,
   INDEX `fk_BookAuthors_Books1_idx` (`bookID` ASC) VISIBLE,
   CONSTRAINT `fk_BookAuthors_Authors1`
@@ -221,6 +223,7 @@
   `bookID` INT NOT NULL,
   `genreID` INT NOT NULL,
   PRIMARY KEY (`bookGenreID`),
+  UNIQUE INDEX `unique_book_genre` (`bookID`, `genreID`),
   INDEX `fk_BookGenres_Books1_idx` (`bookID` ASC) VISIBLE,
   INDEX `fk_BookGenres_Genres1_idx` (`genreID` ASC) VISIBLE,
   CONSTRAINT `fk_BookGenres_Books1`

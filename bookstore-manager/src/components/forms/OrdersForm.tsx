@@ -1,6 +1,17 @@
+/**
+ * @date August 4, 2025
+ * @based_on The form architecture from a CS 361 inventory application project. This includes the use of shadcn/ui components, TypeScript, Zod for schema validation, and React Hook Form for state management.
+ *
+ * @degree_of_originality The foundational pattern for creating forms—defining a Zod schema, using the zodResolver with react-hook-form, and composing the UI with shadcn/ui components—is adapted from the prior project. However, each form's specific schema, fields, and submission logic have been developed uniquely for this application's requirements.
+ *
+ * @source_url N/A - Based on a prior personal project for CS 361.
+ *
+ * @ai_tool_usage The form components were scaffolded using Cursor, an AI code editor, based on the established architecture and the specific data model for each page. The generated code was then refined and customized.
+ */
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,6 +38,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import OrdersService from "@/services/OrdersService";
+import CustomersService from "@/services/CustomersService";
+import SalesRateLocationsService from "@/services/SalesRateLocationsService";
 
 // Enhanced schema with input sanitization
 const orderSchema = z.object({
@@ -40,59 +53,6 @@ const orderSchema = z.object({
 });
 
 type OrderFormValues = z.infer<typeof orderSchema>;
-
-// Sample data for dropdowns
-const sampleCustomers: Array<{
-   customerID: number;
-   firstName: string;
-   lastName: string;
-   email: string;
-}> = [
-   {
-      customerID: 1,
-      firstName: "Reggie",
-      lastName: "Reggerson",
-      email: "regreg@reg.com",
-   },
-   {
-      customerID: 2,
-      firstName: "Gail",
-      lastName: "Nightingstocks",
-      email: "gailsmail@gmail.com",
-   },
-   {
-      customerID: 3,
-      firstName: "Filipe",
-      lastName: "Redsky",
-      email: "filipe@hotmail.com",
-   },
-];
-
-const sampleSalesRateLocations: Array<{
-   salesRateID: number;
-   county: string;
-   state: string;
-   taxRate: number;
-}> = [
-   {
-      salesRateID: 1,
-      county: "Polk",
-      state: "Iowa",
-      taxRate: 4.2,
-   },
-   {
-      salesRateID: 2,
-      county: "Jerome",
-      state: "Idaho",
-      taxRate: 5.1,
-   },
-   {
-      salesRateID: 3,
-      county: "San Francisco",
-      state: "California",
-      taxRate: 8.625,
-   },
-];
 
 interface OrdersFormProps {
    mode: "create" | "edit" | "view";
@@ -111,6 +71,26 @@ export function OrdersForm({
    const [showSuccess, setShowSuccess] = useState(false);
    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
+   const [customers, setCustomers] = useState<any[]>([]);
+   const [salesRateLocations, setSalesRateLocations] = useState<any[]>([]);
+
+   // Fetch customers and sales rate locations data
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const [customersResponse, salesRatesResponse] = await Promise.all([
+               CustomersService.getAll(),
+               SalesRateLocationsService.getAll(),
+            ]);
+            setCustomers(customersResponse.data);
+            setSalesRateLocations(salesRatesResponse.data);
+         } catch (error) {
+            console.error("Error fetching data:", error);
+         }
+      };
+
+      fetchData();
+   }, []);
 
    const form = useForm<OrderFormValues>({
       resolver: zodResolver(orderSchema),
@@ -353,12 +333,10 @@ export function OrdersForm({
                               <FormLabel>Customer</FormLabel>
                               <FormControl>
                                  <SearchableSelect
-                                    options={sampleCustomers.map(
-                                       (customer) => ({
-                                          value: customer.customerID.toString(),
-                                          label: `${customer.firstName} ${customer.lastName} - ${customer.email}`,
-                                       })
-                                    )}
+                                    options={customers.map((customer: any) => ({
+                                       value: customer.customerID.toString(),
+                                       label: `${customer.firstName} ${customer.lastName} - ${customer.email}`,
+                                    }))}
                                     value={field.value?.toString()}
                                     onValueChange={(value) =>
                                        field.onChange(Number(value))
@@ -381,10 +359,10 @@ export function OrdersForm({
                               <FormLabel>Sales Rate Location</FormLabel>
                               <FormControl>
                                  <SearchableSelect
-                                    options={sampleSalesRateLocations.map(
-                                       (location) => ({
+                                    options={salesRateLocations.map(
+                                       (location: any) => ({
                                           value: location.salesRateID.toString(),
-                                          label: `${location.county}, ${location.state} - ${location.taxRate}%`,
+                                          label: `${location.location} - ${location.taxRate}%`,
                                        })
                                     )}
                                     value={field.value?.toString()}

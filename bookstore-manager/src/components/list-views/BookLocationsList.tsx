@@ -66,8 +66,11 @@ export function BookLocationsList({
       const fetchBookLocations = async () => {
          setIsLoading(true);
          try {
-            // Only fetch locations for the specific book ID
-            const response = await BookLocationsService.getByBookId(bookID);
+            // If bookID is 0, fetch all book locations, otherwise filter by book ID
+            const response =
+               bookID === 0
+                  ? await BookLocationsService.getAll()
+                  : await BookLocationsService.getByBookId(bookID);
             setBookLocations(response.data);
          } catch (error) {
             console.error("Error fetching book locations:", error);
@@ -144,8 +147,9 @@ export function BookLocationsList({
                   <div>
                      <CardTitle>Book Locations</CardTitle>
                      <CardDescription>
-                        Storage locations for this book ({bookLocations.length}{" "}
-                        total)
+                        {bookID === 0
+                           ? `All book storage locations (${bookLocations.length} total)`
+                           : `Storage locations for this book (${bookLocations.length} total)`}
                      </CardDescription>
                   </div>
                   <div className="flex gap-2">

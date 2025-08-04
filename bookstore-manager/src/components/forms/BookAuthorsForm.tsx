@@ -1,3 +1,14 @@
+/**
+ * @date August 4, 2025
+ * @based_on The form architecture from a CS 361 inventory application project. This includes the use of shadcn/ui components, TypeScript, Zod for schema validation, and React Hook Form for state management.
+ *
+ * @degree_of_originality The foundational pattern for creating forms—defining a Zod schema, using the zodResolver with react-hook-form, and composing the UI with shadcn/ui components—is adapted from the prior project. However, each form's specific schema, fields, and submission logic have been developed uniquely for this application's requirements.
+ *
+ * @source_url N/A - Based on a prior personal project for CS 361.
+ *
+ * @ai_tool_usage The form components were scaffolded using Cursor, an AI code editor, based on the established architecture and the specific data model for each page. The generated code was then refined and customized.
+ */
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -155,13 +166,28 @@ export function BookAuthorsForm({
          }
 
          onSave(data);
-      } catch (error) {
+      } catch (error: any) {
          console.error("Error saving book author:", error);
-         toast.error("Failed to save book author relationship", {
-            description:
-               "There was an error saving the relationship. Please try again.",
-            duration: Infinity,
-         });
+
+         // Check if it's a duplicate relationship error
+         if (error.response?.status === 409) {
+            const errorData = error.response.data;
+            toast.error(
+               errorData.error || "Book author relationship already exists",
+               {
+                  description:
+                     errorData.suggestion ||
+                     "Please choose a different author or book.",
+                  duration: Infinity,
+               }
+            );
+         } else {
+            toast.error("Failed to save book author relationship", {
+               description:
+                  "There was an error saving the relationship. Please try again.",
+               duration: Infinity,
+            });
+         }
       } finally {
          setIsSubmitting(false);
       }
