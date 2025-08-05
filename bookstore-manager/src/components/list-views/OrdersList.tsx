@@ -280,7 +280,7 @@ export function OrdersList({
                                     {formatPrice(order.total)}
                                  </div>
                                  <div className="text-sm text-muted-foreground">
-                                    Tax: {order.taxRate}%
+                                    Tax: {(order.taxRate * 100).toFixed(3)}%
                                  </div>
                               </TableCell>
                               <TableCell>

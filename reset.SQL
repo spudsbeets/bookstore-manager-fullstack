@@ -305,9 +305,9 @@ BEGIN
     county,
     state
     )
-    VALUES  (4.2, 'Polk', 'Iowa'),
-            (5.1, 'Jerome', 'Idaho'),
-            (8.625, 'San Francisco', 'California');
+    VALUES  (0.042, 'Polk', 'Iowa'),
+            (0.051, 'Jerome', 'Idaho'),
+            (0.08625, 'San Francisco', 'California');
 
     -- SLOCS inserts
     INSERT INTO SLOCS(
@@ -367,17 +367,17 @@ BEGIN
 
     -- Orders inserts
     INSERT INTO Orders(
-        orderDate,
-        orderTime,
-        total,
-        taxRate,
-        customerID,
-        salesRateID
-        )
-    SELECT '2025-10-01', '21:12:11', 45.61, SalesRateLocations.taxRate, customerID, SalesRateLocations.salesRateID
-    FROM Customers
-    JOIN SalesRateLocations ON SalesRateLocations.taxRate = 4.2
-    WHERE Customers.firstName = 'Reggie' AND Customers.lastName = 'Reggerson';
+    orderDate,
+    orderTime,
+    total,
+    taxRate,
+    customerID,
+    salesRateID
+    )
+    SELECT '2025-10-01', '21:12:11', 45.61, srl.taxRate, c.customerID, srl.salesRateID
+    FROM Customers c, SalesRateLocations srl
+    WHERE c.firstName = 'Reggie' AND c.lastName = 'Reggerson'
+    AND srl.county = 'Polk' AND srl.state = 'Iowa';
 
     INSERT INTO Orders(
         orderDate,
@@ -387,10 +387,10 @@ BEGIN
         customerID,
         salesRateID
         )
-    SELECT '2025-10-01', '21:12:11', 61.21, SalesRateLocations.taxRate, customerID, SalesRateLocations.salesRateID
-    FROM Customers
-    JOIN SalesRateLocations ON SalesRateLocations.taxRate = 5.1
-    WHERE Customers.firstName = 'Gail' AND Customers.lastName = 'Nightingstocks';
+    SELECT '2025-10-01', '21:12:11', 61.21, srl.taxRate, c.customerID, srl.salesRateID
+    FROM Customers c, SalesRateLocations srl
+    WHERE c.firstName = 'Gail' AND c.lastName = 'Nightingstocks'
+    AND srl.county = 'Jerome' AND srl.state = 'Idaho';
 
     INSERT INTO Orders(
         orderDate,
@@ -400,10 +400,10 @@ BEGIN
         customerID,
         salesRateID
         )
-    SELECT '2025-12-09', '08:24:24', 112.09, SalesRateLocations.taxRate, customerID, SalesRateLocations.salesRateID
-    FROM Customers
-    JOIN SalesRateLocations ON SalesRateLocations.taxRate = 8.625
-    WHERE Customers.firstName = 'Filipe' AND Customers.lastName = 'Redsky';
+    SELECT '2025-12-09', '08:24:24', 112.09, srl.taxRate, c.customerID, srl.salesRateID
+    FROM Customers c, SalesRateLocations srl
+    WHERE c.firstName = 'Filipe' AND c.lastName = 'Redsky'
+    AND srl.county = 'San Francisco' AND srl.state = 'California';
 
     -- OrderItems inserts
     INSERT INTO OrderItems(

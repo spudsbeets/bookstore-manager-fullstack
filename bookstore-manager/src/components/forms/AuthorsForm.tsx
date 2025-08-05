@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,6 +36,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "sonner";
 import AuthorsService from "@/services/AuthorsService";
 
 // Enhanced schema with input sanitization
@@ -98,6 +99,12 @@ export function AuthorsForm({
          lastName: null,
       },
    });
+
+   useEffect(() => {
+      if (initialData) {
+         form.reset(initialData);
+      }
+   }, [initialData, form]);
 
    const isCreateMode = mode === "create";
    const isEditMode = mode === "edit";

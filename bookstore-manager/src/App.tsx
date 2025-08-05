@@ -14,6 +14,7 @@ import { Navbar } from "@/components/Navbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { Suspense, lazy } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Lazy load all pages
 const HomePage = lazy(() =>
@@ -97,43 +98,45 @@ function App() {
    return (
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
          <Router>
-            <div
-               className="min-h-screen"
-               style={{ backgroundColor: "hsl(var(--background))" }}
-            >
-               <Navbar />
-               <Suspense fallback={<LoadingSpinner />}>
-                  <Routes>
-                     <Route path="/" element={<HomePage />} />
-                     <Route path="/books" element={<BooksPage />} />
-                     <Route path="/customers" element={<CustomersPage />} />
-                     <Route path="/orders" element={<OrdersPage />} />
-                     <Route path="/publishers" element={<PublishersPage />} />
-                     <Route path="/authors" element={<AuthorsPage />} />
-                     <Route path="/genres" element={<GenresPage />} />
-                     <Route path="/locations" element={<LocationsPage />} />
-                     <Route path="/sales-rates" element={<SalesRatesPage />} />
-                     <Route path="/inventory" element={<InventoryPage />} />
-                     <Route
-                        path="/book-authors"
-                        element={<BookAuthorsPage />}
-                     />
-                     <Route path="/book-genres" element={<BookGenresPage />} />
-                     <Route
-                        path="/book-locations"
-                        element={<BookLocationsPage />}
-                     />
-                     <Route path="/order-items" element={<OrderItemsPage />} />
-                     <Route
-                        path="/books/:id/relationships"
-                        element={<BookRelationshipsPage />}
-                     />
-                  </Routes>
-               </Suspense>
-            </div>
+            <AppContent />
          </Router>
          <Toaster richColors />
       </ThemeProvider>
+   );
+}
+
+function AppContent() {
+   usePageTitle();
+
+   return (
+      <div
+         className="min-h-screen"
+         style={{ backgroundColor: "hsl(var(--background))" }}
+      >
+         <Navbar />
+         <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+               <Route path="/" element={<HomePage />} />
+               <Route path="/books" element={<BooksPage />} />
+               <Route path="/customers" element={<CustomersPage />} />
+               <Route path="/orders" element={<OrdersPage />} />
+               <Route path="/publishers" element={<PublishersPage />} />
+               <Route path="/authors" element={<AuthorsPage />} />
+               <Route path="/genres" element={<GenresPage />} />
+               <Route path="/locations" element={<LocationsPage />} />
+               <Route path="/sales-rates" element={<SalesRatesPage />} />
+               <Route path="/inventory" element={<InventoryPage />} />
+               <Route path="/book-authors" element={<BookAuthorsPage />} />
+               <Route path="/book-genres" element={<BookGenresPage />} />
+               <Route path="/book-locations" element={<BookLocationsPage />} />
+               <Route path="/order-items" element={<OrderItemsPage />} />
+               <Route
+                  path="/books/:id/relationships"
+                  element={<BookRelationshipsPage />}
+               />
+            </Routes>
+         </Suspense>
+      </div>
    );
 }
 
