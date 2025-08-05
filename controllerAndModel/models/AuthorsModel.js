@@ -6,7 +6,7 @@
  *
  * @source_url The CS 290 Canvas modules discussing MVC architecture and database models.
  *
- * @ai_tool_usage This model was generated using Cursor, an AI code editor, based on the database schema and a template. The generated code was then refined to add custom logic.
+ * @ai_tool_usage This model was generated using Cursor, an AI code editor, based on the database schema and a template. The generated code was then refined to add Procedures.
  */
 import BaseModel from "./BaseModel.js";
 import pool from "../database/db-connector.js";
@@ -67,7 +67,6 @@ class AuthorsModel extends BaseModel {
       }
    }
 
-   // Override update method to use stored procedure
    async update(id, data) {
       try {
          // Call the specific stored procedure for Authors

@@ -36,7 +36,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { toast } from "sonner";
 import AuthorsService from "@/services/AuthorsService";
 
 // Enhanced schema with input sanitization

@@ -504,6 +504,24 @@ BEGIN
     JOIN Books ON Books.title = 'Good Omens'
     WHERE Authors.firstName = 'Neil' AND Authors.lastName = 'Gaiman';
 
+     INSERT INTO BookAuthors(
+      authorID,
+      bookID
+      )
+  SELECT Authors.authorID, Books.bookID
+  FROM Authors
+  JOIN Books ON Books.title = 'The Talisman'
+  WHERE Authors.firstName = 'Stephen' AND Authors.lastName = 'King';
+
+   INSERT INTO BookAuthors(
+      authorID,
+      bookID
+      )
+  SELECT Authors.authorID, Books.bookID
+  FROM Authors
+  JOIN Books ON Books.title = 'The Talisman'
+  WHERE Authors.firstName = 'Peter' AND Authors.lastName = 'Straub';
+
     -- BookGenres inserts
     INSERT INTO BookGenres(
         genreID,
@@ -531,7 +549,26 @@ BEGIN
     FROM Genres
     JOIN Books ON Books.title = 'Good Omens'
     WHERE Genres.genreName = 'Science Fiction';
-        SET FOREIGN_KEY_CHECKS=1;
+    
+    INSERT INTO BookGenres(
+      genreID,
+      bookID
+      )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'The Talisman'
+    WHERE Genres.genreName = 'Fantasy Fiction';
+
+    INSERT INTO BookGenres(
+    genreID,
+    bookID
+    )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'The Talisman'
+    WHERE Genres.genreName = 'Horror Fiction';
+
+    SET FOREIGN_KEY_CHECKS=1;
 
 
 END $$
@@ -543,7 +580,7 @@ CALL sp_load_bookdb();
 -- Books
 -- =================================================================
 
--- Note: Old sp_insertBook and sp_updateBook procedures have been replaced by sp_dynamic_create_books and sp_dynamic_update_books
+
 
 -- Delete a book
 DROP PROCEDURE IF EXISTS sp_deleteBook;
@@ -632,13 +669,12 @@ BEGIN
     END;
 
     START TRANSACTION;
-        -- First, remove associations in BookAuthors to maintain referential integrity
-        DELETE FROM BookAuthors WHERE authorID = p_authorID;
-        -- Then, delete the author
+        -- No need to manually delete from BookAuthors due to ON DELETE CASCADE
         DELETE FROM Authors WHERE authorID = p_authorID;
     COMMIT;
 END $$
 DELIMITER ;
+
 
 
 -- =================================================================
@@ -801,8 +837,6 @@ BEGIN
     END;
 
     START TRANSACTION;
-        -- It's good practice to delete child records first
-        DELETE FROM OrderItems WHERE orderID = p_orderID;
         DELETE FROM Orders WHERE orderID = p_orderID;
     COMMIT;
 END $$
@@ -1035,97 +1069,10 @@ BEGIN
 END $$
 DELIMITER ;
 
--- =================================================================
--- Certificate Count Update
--- =================================================================
-DROP PROCEDURE IF EXISTS sp_update_cert_count_totals;
-DELIMITER $$
-CREATE PROCEDURE sp_update_cert_count_totals()
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        UPDATE `bsg_cert` bc
-        LEFT JOIN (
-            SELECT cid, COUNT(*) AS cCount
-            FROM bsg_cert_people bcp
-            GROUP BY cid
-        ) c ON bc.id = c.cid
-        -- Update the cert_total column with the count of people holding each certificate
-        SET bc.cert_total = IFNULL(c.cCount, 0);
-    COMMIT;
-END $$
-DELIMITER ;
 
 -- =================================================================
 -- New Dynamic Stored Procedures for Models
 -- =================================================================
-
--- Dynamic create procedure for any table
-DROP PROCEDURE IF EXISTS sp_dynamic_create;
-DELIMITER $$
-CREATE PROCEDURE sp_dynamic_create(
-    IN p_tableName VARCHAR(255),
-    IN p_data JSON
-)
-BEGIN
-    DECLARE columns_list TEXT DEFAULT '';
-    DECLARE placeholders_list TEXT DEFAULT '';
-    DECLARE column_name VARCHAR(255);
-    DECLARE column_value TEXT;
-    DECLARE i INT DEFAULT 0;
-    DECLARE data_length INT;
-    DECLARE dynamic_sql TEXT;
-    DECLARE insert_id INT;
-    
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        -- Build columns and placeholders dynamically
-        SET data_length = JSON_LENGTH(p_data);
-        
-        WHILE i < data_length DO
-            SET column_name = JSON_UNQUOTE(JSON_EXTRACT(JSON_KEYS(p_data), CONCAT('$[', i, ']')));
-            SET column_value = JSON_UNQUOTE(JSON_EXTRACT(p_data, CONCAT('$.', column_name)));
-            
-            -- Handle column names with hyphens
-            IF column_name LIKE '%-%' THEN
-                SET column_name = CONCAT('`', column_name, '`');
-            END IF;
-            
-            IF i > 0 THEN
-                SET columns_list = CONCAT(columns_list, ', ', column_name);
-                SET placeholders_list = CONCAT(placeholders_list, ', ?');
-            ELSE
-                SET columns_list = column_name;
-                SET placeholders_list = '?';
-            END IF;
-            
-            SET i = i + 1;
-        END WHILE;
-        
-        -- Build and execute dynamic SQL
-        SET dynamic_sql = CONCAT('INSERT INTO ', p_tableName, ' (', columns_list, ') VALUES (', placeholders_list, ')');
-        
-        -- Execute the dynamic SQL
-        SET @sql = dynamic_sql;
-        PREPARE stmt FROM @sql;
-        
-        -- We need to handle the values separately since we can't pass them directly to PREPARE
-        -- This is a limitation, so we'll use a different approach
-        -- For now, we'll create specific procedures for each table
-        
-        DEALLOCATE PREPARE stmt;
-    COMMIT;
-END $$
 DELIMITER ;
 
 -- Dynamic create procedure for Books table

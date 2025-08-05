@@ -485,6 +485,23 @@
   JOIN Books ON Books.title = 'Good Omens'
   WHERE Authors.firstName = 'Neil' AND Authors.lastName = 'Gaiman';
 
+   INSERT INTO BookAuthors(
+      authorID,
+      bookID
+      )
+  SELECT Authors.authorID, Books.bookID
+  FROM Authors
+  JOIN Books ON Books.title = 'The Talisman'
+  WHERE Authors.firstName = 'Stephen' AND Authors.lastName = 'King';
+
+   INSERT INTO BookAuthors(
+      authorID,
+      bookID
+      )
+  SELECT Authors.authorID, Books.bookID
+  FROM Authors
+  JOIN Books ON Books.title = 'The Talisman'
+  WHERE Authors.firstName = 'Peter' AND Authors.lastName = 'Straub';
   -- BookGenres inserts
   INSERT INTO BookGenres(
       genreID,
@@ -512,3 +529,21 @@
   FROM Genres
   JOIN Books ON Books.title = 'Good Omens'
   WHERE Genres.genreName = 'Science Fiction';
+
+    INSERT INTO BookGenres(
+      genreID,
+      bookID
+      )
+  SELECT Genres.genreID, Books.bookID
+  FROM Genres
+  JOIN Books ON Books.title = 'The Talisman'
+  WHERE Genres.genreName = 'Fantasy Fiction';
+
+    INSERT INTO BookGenres(
+      genreID,
+      bookID
+      )
+  SELECT Genres.genreID, Books.bookID
+  FROM Genres
+  JOIN Books ON Books.title = 'The Talisman'
+  WHERE Genres.genreName = 'Horror Fiction';

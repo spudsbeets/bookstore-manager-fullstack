@@ -503,3 +503,8 @@ Select b.title, b.bookID FROM Books b;
 
 
 INSERT INTO BookLocations (bookID, slocID) VALUES (:bookID_input, :slocID_input);
+
+
+
+
+

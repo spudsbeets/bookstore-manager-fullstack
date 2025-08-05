@@ -572,12 +572,104 @@ BEGIN
 END $$
 DELIMITER ;
 
--- =================================================================
--- Certificate Count Update
--- =================================================================
-DROP PROCEDURE IF EXISTS sp_update_cert_count_totals;
+-- Authors Procedures
+
+-- Dynamic create procedure for Authors table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_authors;
 DELIMITER $$
-CREATE PROCEDURE sp_update_cert_count_totals()
+CREATE PROCEDURE sp_dynamic_create_authors(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE first_name_val VARCHAR(80);
+    DECLARE middle_name_val VARCHAR(80);
+    DECLARE last_name_val VARCHAR(80);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
+        SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
+        SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        
+        -- Insert
+        INSERT INTO Authors (firstName, middleName, lastName)
+        VALUES (first_name_val, middle_name_val, last_name_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'firstName', first_name_val,
+        'middleName', middle_name_val,
+        'lastName', last_name_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for Authors table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_authors;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_authors(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE first_name_val VARCHAR(80);
+    DECLARE middle_name_val VARCHAR(80);
+    DECLARE last_name_val VARCHAR(80);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
+        SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
+        SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        
+        -- Update
+        UPDATE Authors
+        SET firstName = first_name_val,
+            middleName = middle_name_val,
+            lastName = last_name_val
+        WHERE authorID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'firstName', first_name_val,
+            'middleName', middle_name_val,
+            'lastName', last_name_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- Delete an Author
+DROP PROCEDURE IF EXISTS sp_deleteAuthor;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteAuthor(
+    IN p_authorID INT
+)
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -586,14 +678,86 @@ BEGIN
     END;
 
     START TRANSACTION;
-        UPDATE `bsg_cert` bc
-        LEFT JOIN (
-            SELECT cid, COUNT(*) AS cCount
-            FROM bsg_cert_people bcp
-            GROUP BY cid
-        ) c ON bc.id = c.cid
-        -- Update the cert_total column with the count of people holding each certificate
-        SET bc.cert_total = IFNULL(c.cCount, 0);
+        -- No need to manually delete from BookAuthors due to ON DELETE CASCADE
+        DELETE FROM Authors WHERE authorID = p_authorID;
     COMMIT;
+END $$
+DELIMITER ;
+
+DELIMITER ;
+
+-- Delete a book author relationship
+DROP PROCEDURE IF EXISTS sp_deleteBookAuthor;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteBookAuthor(
+    IN p_bookAuthorID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM BookAuthors WHERE bookAuthorID = p_bookAuthorID;
+    COMMIT;
+END $$
+DELIMITER ;
+-- ===========================================================================
+-- Stored Procedure: sp_dynamic_update_book_genres
+-- Description: Dynamically updates the BookGenres table using JSON input.
+-- ===========================================================================
+-- Citation:
+-- Date: 2025-08-05
+-- Adapted by: Sean Brady
+-- Based on original ideas and patterns from:
+--   - MySQL documentation on JSON functions: https://dev.mysql.com/doc/refman/8.0/en/json.html
+--   - MySQL documentation on stored procedures: https://dev.mysql.com/doc/refman/8.0/en/create-procedure.html
+-- AI Tool Use:
+--   - Used ChatGPT to review/refactor logic and optimize JSON extraction pattern.
+--   - Prompt: "Create a MySQL stored procedure that takes a JSON input and updates a row in a table."
+-- ===========================================================================
+DROP PROCEDURE IF EXISTS sp_dynamic_update_book_genres;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_book_genres(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE genre_id_val INT;
+    DECLARE book_id_val INT;
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET genre_id_val = JSON_EXTRACT(p_data, '$.genreID');
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        
+        -- Update
+        UPDATE BookGenres
+        SET genreID = genre_id_val,
+            bookID = book_id_val
+        WHERE bookGenreID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'genreID', genre_id_val,
+            'bookID', book_id_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
 END $$
 DELIMITER ;
