@@ -214,11 +214,6 @@ export function InventoryPage() {
       }
    };
 
-   const handleCancelDelete = () => {
-      setIsDeleteDialogOpen(false);
-      setItemToDelete(null);
-   };
-
    /**
     * Custom business logic: Real-time inventory statistics calculation
     * This demonstrates understanding of:

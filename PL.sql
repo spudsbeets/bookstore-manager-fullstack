@@ -761,3 +761,656 @@ BEGIN
     END IF;
 END $$
 DELIMITER ;
+
+
+
+-- =================================================================
+-- Views for Book Relationships
+-- =================================================================
+
+-- View for book authors with full details
+DROP VIEW IF EXISTS v_book_authors;
+CREATE VIEW v_book_authors AS
+SELECT 
+    ba.bookAuthorID,
+    ba.bookID,
+    ba.authorID,
+    b.title,
+    a.fullName AS author
+FROM BookAuthors ba
+INNER JOIN Books b ON ba.bookID = b.bookID
+INNER JOIN Authors a ON ba.authorID = a.authorID
+ORDER BY b.title, a.fullName;
+
+-- View for book genres with full details
+DROP VIEW IF EXISTS v_book_genres;
+CREATE VIEW v_book_genres AS
+SELECT 
+    bg.bookGenreID,
+    bg.bookID,
+    bg.genreID,
+    b.title,
+    g.genreName AS genre
+FROM BookGenres bg
+INNER JOIN Books b ON bg.bookID = b.bookID
+INNER JOIN Genres g ON bg.genreID = g.genreID
+ORDER BY b.title, g.genreName;
+
+-- View for book locations with full details
+DROP VIEW IF EXISTS v_book_locations;
+CREATE VIEW v_book_locations AS
+SELECT 
+    bl.bookLocationID,
+    bl.bookID,
+    bl.slocID,
+    bl.quantity,
+    b.title,
+    s.slocName
+FROM BookLocations bl
+INNER JOIN Books b ON bl.bookID = b.bookID
+INNER JOIN SLOCS s ON bl.slocID = s.slocID
+ORDER BY b.title, s.slocName;
+
+
+-- Dynamic create procedure for BookAuthors table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_book_authors;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_book_authors(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE author_id_val INT;
+    DECLARE book_id_val INT;
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET author_id_val = JSON_EXTRACT(p_data, '$.authorID');
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        
+        -- Insert
+        INSERT INTO BookAuthors (authorID, bookID)
+        VALUES (author_id_val, book_id_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'authorID', author_id_val,
+        'bookID', book_id_val
+    ) as result;
+END $$
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_load_bookdb;
+DELIMITER $$
+CREATE PROCEDURE sp_load_bookdb()
+BEGIN
+    SET FOREIGN_KEY_CHECKS=0;
+
+
+    -- -----------------------------------------------------
+    -- Drop and Create Publishers table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `Publishers`;
+    CREATE TABLE `Publishers` (
+    `publisherID` INT NOT NULL AUTO_INCREMENT,
+    `publisherName` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`publisherID`))
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Drop and Create Books table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `Books`;
+    CREATE TABLE `Books` (
+    `bookID` INT NOT NULL AUTO_INCREMENT,
+    `publicationDate` DATE NOT NULL,
+    `isbn-10` CHAR(13) NULL,
+    `isbn-13` CHAR(17) NULL,
+    `inStock` TINYINT NOT NULL DEFAULT 0,
+    `price` DECIMAL(10,2) NOT NULL,
+    `inventoryQty` INT NOT NULL DEFAULT 0,
+    `title` VARCHAR(255) NOT NULL,
+    `publisherID` INT NULL,
+
+    PRIMARY KEY (`bookID`),
+    UNIQUE INDEX `isbn-10_UNIQUE` (`isbn-10` ASC) VISIBLE,
+    UNIQUE INDEX `isbn-13_UNIQUE` (`isbn-13` ASC) VISIBLE,
+    INDEX `fk_Books_Publishers1_idx` (`publisherID` ASC) VISIBLE,
+
+    CONSTRAINT `fk_Books_Publishers1`
+        FOREIGN KEY (`publisherID`)
+        REFERENCES `Publishers` (`publisherID`)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Drop and Create Customers table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `Customers`;
+    CREATE TABLE `Customers` (
+    `customerID` INT NOT NULL AUTO_INCREMENT,
+    `firstName` VARCHAR(100) NOT NULL,
+    `lastName` VARCHAR(100) NOT NULL,
+    `email` VARCHAR(255) NULL,
+    `phoneNumber` CHAR(10) NULL,
+    PRIMARY KEY (`customerID`),
+    UNIQUE INDEX `phoneNumber_UNIQUE` (`phoneNumber` ASC) VISIBLE,
+    UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE
+    )
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Drop and Create SalesRateLocations table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `SalesRateLocations`;
+    CREATE TABLE `SalesRateLocations` (
+    `salesRateID` INT NOT NULL AUTO_INCREMENT,
+    `taxRate` decimal(6,4) NOT NULL,
+    `county` varchar(45) NOT NULL,
+    `state` varchar(45) NOT NULL,
+    PRIMARY KEY (`salesRateID`)
+    )
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Drop and Create Orders table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `Orders`;
+    CREATE TABLE `Orders` (
+    `orderID` INT NOT NULL AUTO_INCREMENT,
+    `orderDate` DATE NOT NULL DEFAULT (CURDATE()),
+    `orderTime` TIME NOT NULL DEFAULT (CURTIME()),
+    `total` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `taxRate` DECIMAL(6,4) NOT NULL,
+    `customerID` INT NOT NULL,
+    `salesRateID` INT NOT NULL,
+    PRIMARY KEY (`orderID`),
+    INDEX `fk_Orders_Customers1_idx` (`customerID` ASC) VISIBLE,
+    INDEX `fk_Orders_SalesRates1_idx` (`salesRateID` ASC) VISIBLE,
+    CONSTRAINT `fk_Orders_Customers1`
+        FOREIGN KEY (`customerID`)
+        REFERENCES `Customers` (`customerID`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    CONSTRAINT `fk_Orders_SalesRates1`
+        FOREIGN KEY (`salesRateID`)
+        REFERENCES `SalesRateLocations` (`salesRateID`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+    )
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Drop and Create OrderItems table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `OrderItems`;
+    CREATE TABLE `OrderItems` (
+    `orderItemID` INT NOT NULL AUTO_INCREMENT,
+    `orderID` INT NOT NULL,
+    `bookID` INT NOT NULL,
+    `quantity` INT NOT NULL,
+    `individualPrice` DECIMAL(10,2) NOT NULL,
+    `subtotal` DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (`orderItemID`),
+    INDEX `fk_OrderItems_Books1_idx` (`bookID` ASC) VISIBLE,
+    INDEX `fk_OrderItems_Orders1_idx` (`orderID` ASC) VISIBLE,
+    CONSTRAINT `fk_OrderItems_Books1`
+        FOREIGN KEY (`bookID`)
+        REFERENCES `Books` (`bookID`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    CONSTRAINT `fk_OrderItems_Orders1`
+        FOREIGN KEY (`orderID`)
+        REFERENCES `Orders` (`orderID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Create Genres table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `Genres`;
+    CREATE TABLE `Genres` (
+    `genreID` INT NOT NULL AUTO_INCREMENT,
+    `genreName` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`genreID`),
+    UNIQUE INDEX `genreName_UNIQUE` (`genreName` ASC) VISIBLE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Create Authors table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `Authors`;
+    CREATE TABLE `Authors` (
+    `authorID` INT NOT NULL AUTO_INCREMENT,
+    `firstName` VARCHAR(80) NOT NULL,
+    `middleName` VARCHAR(80) NULL,
+    `lastName` VARCHAR(80) NULL,
+    `fullName` VARCHAR(243) GENERATED ALWAYS AS (CONCAT_WS(' ',firstName,middleName, lastName)) STORED,
+    PRIMARY KEY (`authorID`),
+    UNIQUE INDEX `fullName_UNIQUE` (`fullName` ASC) VISIBLE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Create SLOCS table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `SLOCS`;
+    CREATE TABLE `SLOCS` (
+    `slocID` INT NOT NULL AUTO_INCREMENT,
+    `slocName` VARCHAR(45) NOT NULL,
+    PRIMARY KEY (`slocID`),
+    UNIQUE INDEX `slocName_UNIQUE` (`slocName` ASC) VISIBLE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Create BookLocations table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `BookLocations`;
+    CREATE TABLE `BookLocations` (
+    `bookLocationID` INT NOT NULL AUTO_INCREMENT,
+    `bookID` INT NOT NULL,
+    `slocID` INT NOT NULL,
+    `quantity` INT NOT NULL,
+    PRIMARY KEY (`bookLocationID`),
+    UNIQUE INDEX `unique_book_location` (`bookID`, `slocID`),
+    INDEX `fk_BookLocations_Books1_idx` (`bookID` ASC) VISIBLE,
+    INDEX `fk_BookLocations_SLOCS1_idx` (`slocID` ASC) VISIBLE,
+    CONSTRAINT `fk_BookLocations_Books1`
+        FOREIGN KEY (`bookID`)
+        REFERENCES `Books` (`bookID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT `fk_BookLocations_SLOCS1`
+        FOREIGN KEY (`slocID`)
+        REFERENCES `SLOCS` (`slocID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Create BookAuthors table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `BookAuthors`;
+    CREATE TABLE `BookAuthors` (
+    `bookAuthorID` INT NOT NULL AUTO_INCREMENT,
+    `authorID` INT NOT NULL,
+    `bookID` INT NOT NULL,
+    PRIMARY KEY (`bookAuthorID`),
+    UNIQUE INDEX `unique_book_author` (`bookID`, `authorID`),
+    INDEX `fk_BookAuthors_Authors1_idx` (`authorID` ASC) VISIBLE,
+    INDEX `fk_BookAuthors_Books1_idx` (`bookID` ASC) VISIBLE,
+    CONSTRAINT `fk_BookAuthors_Authors1`
+        FOREIGN KEY (`authorID`)
+        REFERENCES `Authors` (`authorID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT `fk_BookAuthors_Books1`
+        FOREIGN KEY (`bookID`)
+        REFERENCES `Books` (`bookID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE)
+    ENGINE = InnoDB;
+
+
+    -- -----------------------------------------------------
+    -- Create BookGenres table
+    -- -----------------------------------------------------
+    DROP TABLE IF EXISTS `BookGenres`;
+    CREATE TABLE `BookGenres` (
+    `bookGenreID` INT NOT NULL AUTO_INCREMENT,
+    `bookID` INT NOT NULL,
+    `genreID` INT NOT NULL,
+    PRIMARY KEY (`bookGenreID`),
+    UNIQUE INDEX `unique_book_genre` (`bookID`, `genreID`),
+    INDEX `fk_BookGenres_Books1_idx` (`bookID` ASC) VISIBLE,
+    INDEX `fk_BookGenres_Genres1_idx` (`genreID` ASC) VISIBLE,
+    CONSTRAINT `fk_BookGenres_Books1`
+        FOREIGN KEY (`bookID`)
+        REFERENCES `Books` (`bookID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT `fk_BookGenres_Genres1`
+        FOREIGN KEY (`genreID`)
+        REFERENCES `Genres` (`genreID`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE)
+    ENGINE = InnoDB;
+
+    -- ----------------------------
+    -- Inserting sample data
+    -- ----------------------------
+    -- Customers inserts
+    INSERT INTO Customers(
+        firstName,
+        lastName,
+        email,
+        phoneNumber)
+    VALUES ('Reggie','Reggerson', 'regreg@reg.com', '3333888902'),
+        ('Gail', 'Nightingstocks', 'gailsmail@gmail.com', '2295730384'),
+        ('Filipe', 'Redsky', 'filipe@hotmail.com', '5649836590');
+
+    -- Authors inserts
+    INSERT INTO Authors(
+        firstName,
+        middleName,
+        lastName
+        )
+    VALUES ('Toni', NULL, 'Morrison'),
+        ('Thomas', NULL, 'Pynchon'),
+        ('Stephen', 'Edwin', 'King'),
+        ('Peter',NULL,'Straub'),
+        ('Neil','Richard','Gaiman'),
+        ('Terry',NULL, 'Pratchett');
+
+    -- Genres inserts
+    INSERT INTO Genres(
+        genreName
+        )
+    VALUES ('Postmodern Fiction'),
+    ('Historical Fiction'),
+    ('Horror Fiction'),
+    ('Science Fiction'),
+    ('Fantasy Fiction');
+
+    -- Publishers inserts
+    INSERT INTO Publishers(
+        publisherName
+        )
+    VALUES ('Vintage International'), ('Penguin Books'), ('Viking Press'), ('William Morrow');
+
+    -- SalesRateLocations inserts
+    INSERT INTO SalesRateLocations(
+    taxRate,
+    county,
+    state
+    )
+    VALUES  (0.042, 'Polk', 'Iowa'),
+            (0.051, 'Jerome', 'Idaho'),
+            (0.08625, 'San Francisco', 'California');
+
+    -- SLOCS inserts
+    INSERT INTO SLOCS(
+        slocName
+        )
+    VALUES ('Orchard'), ('Sunwillow'), ('Whiskey Pines');
+
+    -- Books inserts
+    INSERT INTO Books(
+        publicationDate,
+        `isbn-10`,
+        `isbn-13`,
+        inStock,
+        price,
+        inventoryQty,
+        title,
+        publisherID
+        )
+    SELECT '2009-08-04', '0143126850', '9780143126850', 1, 15.99, 5, 'Inherent Vice', publisherID FROM Publishers WHERE publisherName = 'Penguin Books';
+    INSERT INTO Books(
+        publicationDate,
+        `isbn-10`,
+        `isbn-13`,
+        inStock,
+        price,
+        inventoryQty,
+        title,
+        publisherID
+        )
+    SELECT '1987-09-01', '1400033416', '9781400033416', 1, 17.99, 7, 'Beloved', publisherID FROM Publishers WHERE publisherName = 'Vintage International';
+    INSERT INTO Books (
+        publicationDate,
+        `isbn-10`,
+        `isbn-13`,
+        inStock,
+        price,
+        inventoryQty,
+        title,
+        publisherID
+    )
+    SELECT '1984-11-08', '0670691992', '9780670691999', 1, 18.99, 6, 'The Talisman', publisherID
+    FROM Publishers
+    WHERE publisherName = 'Viking Press';
+    INSERT INTO Books (
+        publicationDate,
+        `isbn-10`,
+        `isbn-13`,
+        inStock,
+        price,
+        inventoryQty,
+        title,
+        publisherID
+    )
+    SELECT '2006-11-28', '0060853980', '9780060853983', 1, 16.99, 8, 'Good Omens', publisherID
+    FROM Publishers
+    WHERE publisherName = 'William Morrow';
+
+    -- Orders inserts
+    INSERT INTO Orders(
+    orderDate,
+    orderTime,
+    total,
+    taxRate,
+    customerID,
+    salesRateID
+    )
+    SELECT '2025-10-01', '21:12:11', 45.61, srl.taxRate, c.customerID, srl.salesRateID
+    FROM Customers c, SalesRateLocations srl
+    WHERE c.firstName = 'Reggie' AND c.lastName = 'Reggerson'
+    AND srl.county = 'Polk' AND srl.state = 'Iowa';
+
+    INSERT INTO Orders(
+        orderDate,
+        orderTime,
+        total,
+        taxRate,
+        customerID,
+        salesRateID
+        )
+    SELECT '2025-10-01', '21:12:11', 61.21, srl.taxRate, c.customerID, srl.salesRateID
+    FROM Customers c, SalesRateLocations srl
+    WHERE c.firstName = 'Gail' AND c.lastName = 'Nightingstocks'
+    AND srl.county = 'Jerome' AND srl.state = 'Idaho';
+
+    INSERT INTO Orders(
+        orderDate,
+        orderTime,
+        total,
+        taxRate,
+        customerID,
+        salesRateID
+        )
+    SELECT '2025-12-09', '08:24:24', 112.09, srl.taxRate, c.customerID, srl.salesRateID
+    FROM Customers c, SalesRateLocations srl
+    WHERE c.firstName = 'Filipe' AND c.lastName = 'Redsky'
+    AND srl.county = 'San Francisco' AND srl.state = 'California';
+
+    -- OrderItems inserts
+    INSERT INTO OrderItems(
+        orderID,
+        bookID,
+        quantity,
+        individualPrice,
+        subtotal
+        )
+    SELECT Orders.orderID, Books.bookID, 2, Books.price, 2 * Books.price
+    FROM Orders
+    JOIN Customers ON Orders.customerID = Customers.customerID
+    JOIN Books ON Books.title = 'Beloved'
+    WHERE Customers.firstName = 'Reggie';
+
+    INSERT INTO OrderItems(
+        orderID,
+        bookID,
+        quantity,
+        individualPrice,
+        subtotal
+        )
+    SELECT Orders.orderID, Books.bookID, 1, Books.price, 1 * Books.price
+    FROM Orders
+    JOIN Customers ON Orders.customerID = Customers.customerID
+    JOIN Books ON Books.title = 'Inherent Vice'
+    WHERE Customers.firstName = 'Gail';
+
+    INSERT INTO OrderItems(
+        orderID,
+        bookID,
+        quantity,
+        individualPrice,
+        subtotal
+        )
+    SELECT Orders.orderID, Books.bookID, 3, Books.price, 3 * Books.price
+    FROM Orders
+    JOIN Customers ON Orders.customerID = Customers.customerID
+    JOIN Books ON Books.title = 'Good Omens'
+    WHERE Customers.firstName = 'Filipe';
+
+    -- BookLocations inserts
+    INSERT INTO BookLocations(
+        bookID,
+        slocID,
+        quantity
+        )
+    SELECT Books.bookID, SLOCS.slocID, 8
+    FROM Books
+    JOIN SLOCS ON SLOCS.slocName = 'Orchard'
+    WHERE Books.title = 'Beloved';
+
+    INSERT INTO BookLocations(
+        bookID,
+        slocID,
+        quantity
+        )
+    SELECT Books.bookID, SLOCS.slocID, 12
+    FROM Books
+    JOIN SLOCS ON SLOCS.slocName = 'Sunwillow'
+    WHERE Books.title = 'Inherent Vice';
+
+    INSERT INTO BookLocations(
+        bookID,
+        slocID,
+        quantity
+        )
+    SELECT Books.bookID, SLOCS.slocID, 3
+    FROM Books
+    JOIN SLOCS ON SLOCS.slocName = 'Whiskey Pines'
+    WHERE Books.title = 'Good Omens';
+
+    -- BookAuthors inserts
+    INSERT INTO BookAuthors(
+        authorID,
+        bookID
+        )
+    SELECT Authors.authorID, Books.bookID
+    FROM Authors
+    JOIN Books ON Books.title = 'Beloved'
+    WHERE Authors.firstName = 'Toni' AND Authors.lastName = 'Morrison';
+
+    INSERT INTO BookAuthors(
+        authorID,
+        bookID
+        )
+    SELECT Authors.authorID, Books.bookID
+    FROM Authors
+    JOIN Books ON Books.title = 'Inherent Vice'
+    WHERE Authors.firstName = 'Thomas' AND Authors.lastName = 'Pynchon';
+
+    INSERT INTO BookAuthors(
+        authorID,
+        bookID
+        )
+    SELECT Authors.authorID, Books.bookID
+    FROM Authors
+    JOIN Books ON Books.title = 'Good Omens'
+    WHERE Authors.firstName = 'Neil' AND Authors.lastName = 'Gaiman';
+
+     INSERT INTO BookAuthors(
+      authorID,
+      bookID
+      )
+    SELECT Authors.authorID, Books.bookID
+    FROM Authors
+    JOIN Books ON Books.title = 'The Talisman'
+    WHERE Authors.firstName = 'Stephen' AND Authors.lastName = 'King';
+
+    INSERT INTO BookAuthors(
+        authorID,
+        bookID
+        )
+    SELECT Authors.authorID, Books.bookID
+    FROM Authors
+    JOIN Books ON Books.title = 'The Talisman'
+    WHERE Authors.firstName = 'Peter' AND Authors.lastName = 'Straub';
+
+    -- BookGenres inserts
+    INSERT INTO BookGenres(
+        genreID,
+        bookID
+        )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'Beloved'
+    WHERE Genres.genreName = 'Historical Fiction';
+
+    INSERT INTO BookGenres(
+        genreID,
+        bookID
+        )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'Inherent Vice'
+    WHERE Genres.genreName = 'Postmodern Fiction';
+
+    INSERT INTO BookGenres(
+        genreID,
+        bookID
+        )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'Good Omens'
+    WHERE Genres.genreName = 'Science Fiction';
+    
+    INSERT INTO BookGenres(
+      genreID,
+      bookID
+      )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'The Talisman'
+    WHERE Genres.genreName = 'Fantasy Fiction';
+
+    INSERT INTO BookGenres(
+    genreID,
+    bookID
+    )
+    SELECT Genres.genreID, Books.bookID
+    FROM Genres
+    JOIN Books ON Books.title = 'The Talisman'
+    WHERE Genres.genreName = 'Horror Fiction';
+
+    SET FOREIGN_KEY_CHECKS=1;
+
+
+END $$
+DELIMITER ;
