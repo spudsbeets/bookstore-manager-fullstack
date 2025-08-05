@@ -117,15 +117,10 @@ class BookLocationsModel extends BaseModel {
 
    async findByBookId(bookId) {
       try {
-         const query = `
-        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
-        FROM BookLocations bl
-        INNER JOIN Books b ON bl.bookID = b.bookID
-        INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        WHERE bl.bookID = ?
-        ORDER BY s.slocName
-      `;
-         const [results] = await pool.query(query, [bookId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_locations WHERE bookID = ? ORDER BY slocName",
+            [bookId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book locations by book ID:", error);
@@ -135,15 +130,10 @@ class BookLocationsModel extends BaseModel {
 
    async findByLocationId(locationId) {
       try {
-         const query = `
-        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
-        FROM BookLocations bl
-        INNER JOIN Books b ON bl.bookID = b.bookID
-        INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        WHERE bl.slocID = ?
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query, [locationId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_locations WHERE slocID = ? ORDER BY title",
+            [locationId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book locations by location ID:", error);
@@ -153,14 +143,9 @@ class BookLocationsModel extends BaseModel {
 
    async findAll() {
       try {
-         const query = `
-        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
-        FROM BookLocations bl
-        INNER JOIN Books b ON bl.bookID = b.bookID
-        INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_locations ORDER BY title"
+         );
          return results;
       } catch (error) {
          console.error("Error finding all book locations:", error);

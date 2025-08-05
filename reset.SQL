@@ -2424,6 +2424,53 @@ FROM Books b
 LEFT JOIN Publishers p ON b.publisherID = p.publisherID;
 
 -- =================================================================
+-- Views for Book Relationships
+-- =================================================================
+
+-- View for book authors with full details
+DROP VIEW IF EXISTS v_book_authors;
+CREATE VIEW v_book_authors AS
+SELECT 
+    ba.bookAuthorID,
+    ba.bookID,
+    ba.authorID,
+    b.title,
+    a.fullName AS author
+FROM BookAuthors ba
+INNER JOIN Books b ON ba.bookID = b.bookID
+INNER JOIN Authors a ON ba.authorID = a.authorID
+ORDER BY b.title, a.fullName;
+
+-- View for book genres with full details
+DROP VIEW IF EXISTS v_book_genres;
+CREATE VIEW v_book_genres AS
+SELECT 
+    bg.bookGenreID,
+    bg.bookID,
+    bg.genreID,
+    b.title,
+    g.genreName AS genre
+FROM BookGenres bg
+INNER JOIN Books b ON bg.bookID = b.bookID
+INNER JOIN Genres g ON bg.genreID = g.genreID
+ORDER BY b.title, g.genreName;
+
+-- View for book locations with full details
+DROP VIEW IF EXISTS v_book_locations;
+CREATE VIEW v_book_locations AS
+SELECT 
+    bl.bookLocationID,
+    bl.bookID,
+    bl.slocID,
+    bl.quantity,
+    b.title,
+    s.slocName
+FROM BookLocations bl
+INNER JOIN Books b ON bl.bookID = b.bookID
+INNER JOIN SLOCS s ON bl.slocID = s.slocID
+ORDER BY b.title, s.slocName;
+
+-- =================================================================
 -- Missing Delete Procedures
 -- =================================================================
 

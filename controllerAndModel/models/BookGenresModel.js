@@ -152,15 +152,10 @@ class BookGenresModel extends BaseModel {
 
    async findByBookId(bookId) {
       try {
-         const query = `
-        SELECT bg.bookGenreID, b.title, g.genreName AS genre
-        FROM BookGenres bg
-        INNER JOIN Books b ON bg.bookID = b.bookID
-        INNER JOIN Genres g ON bg.genreID = g.genreID
-        WHERE bg.bookID = ?
-        ORDER BY g.genreName
-      `;
-         const [results] = await pool.query(query, [bookId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_genres WHERE bookID = ? ORDER BY genre",
+            [bookId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book genres by book ID:", error);
@@ -170,15 +165,10 @@ class BookGenresModel extends BaseModel {
 
    async findByGenreId(genreId) {
       try {
-         const query = `
-        SELECT bg.bookGenreID, b.title, g.genreName AS genre
-        FROM BookGenres bg
-        INNER JOIN Books b ON bg.bookID = b.bookID
-        INNER JOIN Genres g ON bg.genreID = g.genreID
-        WHERE bg.genreID = ?
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query, [genreId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_genres WHERE genreID = ? ORDER BY title",
+            [genreId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book genres by genre ID:", error);
@@ -188,21 +178,9 @@ class BookGenresModel extends BaseModel {
 
    async findAll() {
       try {
-         const query = `
-        SELECT
-            bg.bookGenreID,
-            b.title,
-            g.genreName AS genre
-        FROM
-            Books AS b
-        JOIN
-            BookGenres AS bg ON b.bookID = bg.bookID
-        JOIN
-            Genres AS g ON bg.genreID = g.genreID
-        ORDER BY
-            b.title
-      `;
-         const [results] = await pool.query(query);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_genres ORDER BY title"
+         );
          return results;
       } catch (error) {
          console.error("Error finding all book genres:", error);

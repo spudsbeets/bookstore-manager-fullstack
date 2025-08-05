@@ -236,6 +236,7 @@ export function AuthorsForm({
                                     disabled={isViewMode}
                                  />
                               </FormControl>
+                              <FormDescription>Required</FormDescription>
                               <FormMessage />
                            </FormItem>
                         )}
@@ -255,9 +256,7 @@ export function AuthorsForm({
                                     disabled={isViewMode}
                                  />
                               </FormControl>
-                              <FormDescription>
-                                 Author's middle name (optional)
-                              </FormDescription>
+                              <FormDescription>Optional</FormDescription>
                               <FormMessage />
                            </FormItem>
                         )}
@@ -277,6 +276,7 @@ export function AuthorsForm({
                                     disabled={isViewMode}
                                  />
                               </FormControl>
+                              <FormDescription>Optional</FormDescription>
                               <FormMessage />
                            </FormItem>
                         )}

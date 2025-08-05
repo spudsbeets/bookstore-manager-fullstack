@@ -18,15 +18,10 @@ class BookAuthorsModel extends BaseModel {
 
    async findByBookId(bookId) {
       try {
-         const query = `
-        SELECT ba.bookAuthorID, b.title, a.fullName AS author
-        FROM BookAuthors ba
-        INNER JOIN Books b ON ba.bookID = b.bookID
-        INNER JOIN Authors a ON ba.authorID = a.authorID
-        WHERE ba.bookID = ?
-        ORDER BY a.fullName
-      `;
-         const [results] = await pool.query(query, [bookId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_authors WHERE bookID = ? ORDER BY author",
+            [bookId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book authors by book ID:", error);
@@ -36,15 +31,10 @@ class BookAuthorsModel extends BaseModel {
 
    async findByAuthorId(authorId) {
       try {
-         const query = `
-        SELECT ba.bookAuthorID, b.title, a.fullName AS author
-        FROM BookAuthors ba
-        INNER JOIN Books b ON ba.bookID = b.bookID
-        INNER JOIN Authors a ON ba.authorID = a.authorID
-        WHERE ba.authorID = ?
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query, [authorId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_authors WHERE authorID = ? ORDER BY title",
+            [authorId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book authors by author ID:", error);
@@ -54,21 +44,9 @@ class BookAuthorsModel extends BaseModel {
 
    async findAll() {
       try {
-         const query = `
-        SELECT
-            ba.bookAuthorID,
-            b.title,
-            a.fullName AS author
-        FROM
-            Books AS b
-        JOIN
-            BookAuthors AS ba ON b.bookID = ba.bookID
-        JOIN
-            Authors AS a ON ba.authorID = a.authorID
-        ORDER BY
-            b.title
-      `;
-         const [results] = await pool.query(query);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_authors ORDER BY title"
+         );
          return results;
       } catch (error) {
          console.error("Error finding all book authors:", error);
