@@ -539,6 +539,7 @@ export function BooksForm({
                                  placeholder="Select a publisher"
                                  searchPlaceholder="Search publishers..."
                                  emptyMessage="No publishers found."
+                                 disabled={isViewMode}
                               />
                            </FormControl>
                            <FormMessage />

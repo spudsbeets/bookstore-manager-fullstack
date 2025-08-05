@@ -74,23 +74,18 @@ app.post("/api/v1/reset", async (req, res) => {
    try {
       console.log("Resetting database...");
 
-      const ddlPath = path.join(__dirname, "..", "reset.sql");
-      const ddlScript = fs.readFileSync(ddlPath, "utf8");
+      // Call the stored procedure to reset the database
+      await db.query("CALL sp_load_bookdb()");
 
-      // Split the script into individual statements and execute them
-      const statements = ddlScript.split(";").filter((stmt) => stmt.trim());
-      for (const statement of statements) {
-         if (statement.trim()) {
-            await db.query(statement);
-         }
-      }
-
-      console.log("Database reset complete with sample data from DDL.sql");
+      console.log(
+         "Database reset complete with sample data from stored procedure"
+      );
       res.json({
          status: "success",
-         message: "Database reset complete with sample data from DDL.sql",
-         tablesCreated: "From DDL.sql",
-         sampleDataInserted: "From DDL.sql file",
+         message:
+            "Database reset complete with sample data from stored procedure",
+         tablesCreated: "All tables created via sp_load_bookdb()",
+         sampleDataInserted: "Sample data inserted via sp_load_bookdb()",
       });
    } catch (error) {
       console.error("Error resetting database:", error);

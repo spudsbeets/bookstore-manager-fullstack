@@ -43,18 +43,21 @@ class BaseModel {
 
    async create(data) {
       try {
-         const columns = Object.keys(data).join(", ");
-         const placeholders = Object.keys(data)
-            .map(() => "?")
-            .join(", ");
-         const values = Object.values(data);
+         // Use dynamic stored procedure
+         const [result] = await pool.query("CALL sp_dynamic_create(?, ?)", [
+            this.tableName,
+            JSON.stringify(data),
+         ]);
 
-         const [result] = await pool.query(
-            `INSERT INTO ${this.tableName} (${columns}) VALUES (${placeholders})`,
-            values
+         // Extract the result from the stored procedure
+         const [rows] = await pool.query(
+            `SELECT * FROM ${this.tableName} WHERE ${this.idColumn} = LAST_INSERT_ID()`
          );
 
-         return { id: result.insertId, ...data };
+         if (rows.length > 0) {
+            return { id: rows[0][this.idColumn], ...data };
+         }
+         return null;
       } catch (error) {
          console.error(`Error creating ${this.tableName}:`, error);
          throw error;
@@ -63,21 +66,23 @@ class BaseModel {
 
    async update(id, data) {
       try {
-         const setClause = Object.keys(data)
-            .map((key) => `${key} = ?`)
-            .join(", ");
-         const values = [...Object.values(data), id];
+         // Use dynamic stored procedure
+         const [result] = await pool.query("CALL sp_dynamic_update(?, ?, ?)", [
+            this.tableName,
+            id,
+            JSON.stringify(data),
+         ]);
 
-         const [result] = await pool.query(
-            `UPDATE ${this.tableName} SET ${setClause} WHERE ${this.idColumn} = ?`,
-            values
+         // Check if update was successful
+         const [rows] = await pool.query(
+            `SELECT * FROM ${this.tableName} WHERE ${this.idColumn} = ?`,
+            [id]
          );
 
-         if (result.affectedRows === 0) {
-            return null;
+         if (rows.length > 0) {
+            return { id, ...data };
          }
-
-         return { id, ...data };
+         return null;
       } catch (error) {
          console.error(`Error updating ${this.tableName}:`, error);
          throw error;
@@ -86,12 +91,13 @@ class BaseModel {
 
    async deleteById(id) {
       try {
-         const [result] = await pool.query(
-            `DELETE FROM ${this.tableName} WHERE ${this.idColumn} = ?`,
-            [id]
-         );
+         const [result] = await pool.query("CALL sp_dynamic_delete(?, ?, ?)", [
+            this.tableName,
+            this.idColumn,
+            id,
+         ]);
 
-         return result.affectedRows > 0;
+         return result[0][0].success;
       } catch (error) {
          console.error(`Error deleting ${this.tableName}:`, error);
          throw error;

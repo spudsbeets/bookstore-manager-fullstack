@@ -46,6 +46,61 @@ class AuthorsModel extends BaseModel {
          throw error;
       }
    }
+
+   // Override create method to use stored procedure
+   async create(data) {
+      try {
+         // Call the specific stored procedure for Authors
+         const [result] = await pool.query(
+            "CALL sp_dynamic_create_authors(?)",
+            [JSON.stringify(data)]
+         );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
+
+         return { id: parsedResult.id, ...data };
+      } catch (error) {
+         console.error(`Error creating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
+
+   // Override update method to use stored procedure
+   async update(id, data) {
+      try {
+         // Call the specific stored procedure for Authors
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_authors(?, ?)",
+            [id, JSON.stringify(data)]
+         );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+
+         if (jsonResult) {
+            const parsedResult = JSON.parse(jsonResult);
+            return { id, ...data };
+         }
+         return null;
+      } catch (error) {
+         console.error(`Error updating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
+
+   // Override deleteById method to use stored procedure
+   async deleteById(id) {
+      try {
+         // Call the stored procedure
+         await pool.query("CALL sp_deleteAuthor(?)", [id]);
+         return true; // If no error, deletion was successful
+      } catch (error) {
+         console.error("Error deleting author:", error);
+         throw error;
+      }
+   }
 }
 
 export default new AuthorsModel();

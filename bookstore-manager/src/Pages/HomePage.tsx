@@ -17,6 +17,8 @@ import {
    CardHeader,
    CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ResetConfirmationDialog } from "@/components/ui/reset-confirmation-dialog";
 import {
    BookOpen,
    Users,
@@ -27,6 +29,7 @@ import {
    MapPin,
    Package,
    Loader2,
+   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +42,7 @@ import AuthorsService from "@/services/AuthorsService";
 import GenresService from "@/services/GenresService";
 import SalesRateLocationsService from "@/services/SalesRateLocationsService";
 import BookLocationsService from "@/services/BookLocationsService";
+import ResetService from "@/services/ResetService";
 
 interface DashboardStats {
    books: number;
@@ -64,63 +68,86 @@ export function HomePage() {
    });
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
+   const [isResetting, setIsResetting] = useState(false);
+   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+
+   const handleReset = async () => {
+      setIsResetting(true);
+      try {
+         const response = await ResetService.resetDatabase();
+
+         if (response.status === "success") {
+            toast.success("Database reset successfully!");
+            // Refresh the dashboard data
+            fetchDashboardData();
+         } else {
+            toast.error("Failed to reset database");
+         }
+      } catch (error) {
+         console.error("Error resetting database:", error);
+         toast.error("Failed to reset database");
+      } finally {
+         setIsResetting(false);
+         setIsResetDialogOpen(false);
+      }
+   };
+
+   const fetchDashboardData = async () => {
+      try {
+         const [
+            customersResponse,
+            booksResponse,
+            ordersResponse,
+            publishersResponse,
+            authorsResponse,
+            genresResponse,
+            salesRatesResponse,
+            bookLocationsResponse,
+         ] = await Promise.all([
+            CustomersService.getAll(),
+            BooksService.getAll(),
+            OrdersService.getAll(),
+            PublishersService.getAll(),
+            AuthorsService.getAll(),
+            GenresService.getAll(),
+            SalesRateLocationsService.getAll(),
+            BookLocationsService.getAll(),
+         ]);
+
+         console.log("All API calls completed successfully");
+
+         // Calculate inventory total from book-locations (actual inventory)
+         const inventoryTotal = bookLocationsResponse.data.reduce(
+            (sum: number, bookLocation: any) =>
+               sum + (bookLocation.quantity || 0),
+            0
+         );
+
+         const newStats = {
+            books: booksResponse.data.length,
+            customers: customersResponse.data.length,
+            orders: ordersResponse.data.length,
+            publishers: publishersResponse.data.length,
+            authors: authorsResponse.data.length,
+            genres: genresResponse.data.length,
+            salesRates: salesRatesResponse.data.length,
+            inventory: inventoryTotal,
+         };
+
+         console.log("Setting stats:", newStats);
+         setStats(newStats);
+      } catch (error) {
+         console.error("Error fetching dashboard data:", error);
+         setError(error instanceof Error ? error.message : "Unknown error");
+         toast.error("Failed to load dashboard data", {
+            description: "Some statistics may not be accurate.",
+         });
+      } finally {
+         setIsLoading(false);
+      }
+   };
 
    useEffect(() => {
-      const fetchDashboardData = async () => {
-         try {
-            const [
-               customersResponse,
-               booksResponse,
-               ordersResponse,
-               publishersResponse,
-               authorsResponse,
-               genresResponse,
-               salesRatesResponse,
-               bookLocationsResponse,
-            ] = await Promise.all([
-               CustomersService.getAll(),
-               BooksService.getAll(),
-               OrdersService.getAll(),
-               PublishersService.getAll(),
-               AuthorsService.getAll(),
-               GenresService.getAll(),
-               SalesRateLocationsService.getAll(),
-               BookLocationsService.getAll(),
-            ]);
-
-            console.log("All API calls completed successfully");
-
-            // Calculate inventory total from book-locations (actual inventory)
-            const inventoryTotal = bookLocationsResponse.data.reduce(
-               (sum: number, bookLocation: any) =>
-                  sum + (bookLocation.quantity || 0),
-               0
-            );
-
-            const newStats = {
-               books: booksResponse.data.length,
-               customers: customersResponse.data.length,
-               orders: ordersResponse.data.length,
-               publishers: publishersResponse.data.length,
-               authors: authorsResponse.data.length,
-               genres: genresResponse.data.length,
-               salesRates: salesRatesResponse.data.length,
-               inventory: inventoryTotal,
-            };
-
-            console.log("Setting stats:", newStats);
-            setStats(newStats);
-         } catch (error) {
-            console.error("Error fetching dashboard data:", error);
-            setError(error instanceof Error ? error.message : "Unknown error");
-            toast.error("Failed to load dashboard data", {
-               description: "Some statistics may not be accurate.",
-            });
-         } finally {
-            setIsLoading(false);
-         }
-      };
-
       fetchDashboardData();
    }, []);
 
@@ -438,7 +465,31 @@ export function HomePage() {
                   </CardContent>
                </Card>
             </div>
+
+            {/* Reset Button */}
+            <div className="flex justify-center mt-8">
+               <Button
+                  onClick={() => setIsResetDialogOpen(true)}
+                  disabled={isResetting}
+                  variant="destructive"
+                  className="flex items-center gap-2"
+               >
+                  {isResetting ? (
+                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                     <RotateCcw className="h-4 w-4" />
+                  )}
+                  {isResetting ? "Resetting..." : "Reset Database"}
+               </Button>
+            </div>
          </div>
+
+         <ResetConfirmationDialog
+            isOpen={isResetDialogOpen}
+            onOpenChange={setIsResetDialogOpen}
+            onConfirm={handleReset}
+            isResetting={isResetting}
+         />
       </div>
    );
 }
