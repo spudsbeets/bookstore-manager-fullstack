@@ -123,8 +123,6 @@ VALUES (:book_id_from_dropdown, :author_id_from_dropdown);
 
 -- disassociate an author from a book
 DELETE FROM BookAuthors WHERE bookID = :book_ID_selected_from_list AND authorID = :author_ID_selected_from_list;
--- Or, using the primary key of the intersection table:
-DELETE FROM BookAuthors WHERE bookAuthorID = :bookAuthorID_from_list;
 
 -- Genres                                    --
 -- get all genres to populate a dropdown or list
