@@ -114,7 +114,8 @@ export function OrderItemsList({
             toast.error("Failed to load order items", {
                description:
                   "There was an error loading the order items. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -152,7 +153,8 @@ export function OrderItemsList({
          toast.error("Failed to delete order item", {
             description:
                "There was an error deleting the order item. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

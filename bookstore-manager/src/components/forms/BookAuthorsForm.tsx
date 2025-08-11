@@ -178,14 +178,16 @@ export function BookAuthorsForm({
                   description:
                      errorData.suggestion ||
                      "Please choose a different author or book.",
-                  duration: Infinity,
+                  duration: 30000,
+                  dismissible: true,
                }
             );
          } else {
             toast.error("Failed to save book author relationship", {
                description:
                   "There was an error saving the relationship. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          }
       } finally {

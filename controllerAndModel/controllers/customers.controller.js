@@ -57,13 +57,20 @@ export async function update(req, res) {
 
 export async function deleteOne(req, res) {
    try {
-      const deleted = await CustomersModel.deleteById(req.params.id);
-      if (!deleted)
-         return res.status(404).json({ error: "Customer not found" });
-      res.status(204).send();
+      const result = await CustomersModel.deleteById(req.params.id);
+      if (result.success) {
+         res.status(200).json({
+            message: result.message,
+         });
+      } else {
+         res.status(404).json({ error: "Customer not found" });
+      }
    } catch (err) {
       console.error("Error deleting customer:", err);
-      res.status(500).json({ error: "Failed to delete customer" });
+      res.status(500).json({
+         error: "Failed to delete customer",
+         details: err.message,
+      });
    }
 }
 

@@ -25,6 +25,7 @@ import {
    FormLabel,
    FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
@@ -69,7 +70,7 @@ const bookSchema = z.object({
    "isbn-10": z.string().nullable().optional(),
    "isbn-13": z.string().nullable().optional(),
    price: z.string().min(1, "Price is required"),
-   inventoryQty: z.number().min(0, "Inventory quantity must be positive"),
+   inventoryQty: z.number().optional(), // Will be calculated automatically from BookLocations
    publisher: z.string().nullable().optional(),
    authors: z.string().nullable().optional(),
    genres: z.string().nullable().optional(),
@@ -133,6 +134,8 @@ export function BooksForm({
             console.error("Error fetching form data:", error);
             toast.error("Failed to load form data", {
                description: "Please refresh the page and try again.",
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoadingData(false);
@@ -181,7 +184,7 @@ export function BooksForm({
               "isbn-10": "",
               "isbn-13": "",
               price: "",
-              inventoryQty: 0,
+              inventoryQty: undefined, // Will be calculated automatically
               publisher: "",
               authors: "",
               genres: "",
@@ -224,17 +227,31 @@ export function BooksForm({
             publicationDate: data.publicationDate,
             "isbn-10": data["isbn-10"] || null,
             "isbn-13": data["isbn-13"] || null,
-            price: data.price,
-            inventoryQty: data.inventoryQty,
+            price: data.price, // Keep as string, let backend handle conversion
+            inventoryQty: data.inventoryQty || 0, // Default to 0 if not provided
             publisherID: data.publisher ? parseInt(data.publisher) : null,
          };
 
+         // Debug logging
+         console.log("Submitting book data:", createData);
+         console.log(
+            "Price value:",
+            createData.price,
+            "Type:",
+            typeof createData.price
+         );
+
          if (isCreateMode) {
             // Create new book
-            await BooksService.create(createData);
+            const result = await BooksService.create(createData);
+            console.log("Create result:", result);
          } else if (isEditMode && initialData?.bookID) {
             // Update existing book
-            await BooksService.update(initialData.bookID, createData);
+            const result = await BooksService.update(
+               initialData.bookID,
+               createData
+            );
+            console.log("Update result:", result);
          }
 
          if (onSave) {
@@ -258,7 +275,8 @@ export function BooksForm({
          toast.error("Failed to save book", {
             description:
                "There was an error saving the book. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsSubmitting(false);
@@ -287,7 +305,8 @@ export function BooksForm({
          toast.error("Failed to delete book", {
             description:
                "There was an error deleting the book. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);
@@ -311,9 +330,9 @@ export function BooksForm({
    const getDescription = () => {
       switch (mode) {
          case "create":
-            return "Add a new book to your bookstore catalog";
+            return "Add a new book to your bookstore catalog. Inventory quantities are managed through BookLocations.";
          case "edit":
-            return "Update book information";
+            return "Update book information. Inventory quantities are managed through BookLocations.";
          case "view":
             return "View book details";
          default:
@@ -578,38 +597,21 @@ export function BooksForm({
                         )}
                      />
 
-                     <FormField
-                        control={form.control}
-                        name="inventoryQty"
-                        render={({ field }) => (
-                           <FormItem>
-                              <FormLabel>Inventory Quantity</FormLabel>
-                              <FormControl>
-                                 <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    value={field.value || ""}
-                                    onChange={(e) => {
-                                       const value = e.target.value;
-                                       if (
-                                          value === "" ||
-                                          /^\d+$/.test(value)
-                                       ) {
-                                          field.onChange(
-                                             value === ""
-                                                ? 0
-                                                : parseInt(value) || 0
-                                          );
-                                       }
-                                    }}
-                                    disabled={isViewMode}
-                                 />
-                              </FormControl>
-                              <FormMessage />
-                           </FormItem>
-                        )}
-                     />
+                     {/* Inventory Quantity (Read-only, calculated from BookLocations) */}
+                     <div className="space-y-2">
+                        <Label>Inventory Quantity</Label>
+                        <div className="p-3 bg-muted rounded-md">
+                           <div className="text-sm text-muted-foreground">
+                              {initialData?.inventoryQty !== undefined
+                                 ? `${initialData.inventoryQty} copies available`
+                                 : "Inventory will be calculated from book locations"}
+                           </div>
+                           <div className="text-xs text-muted-foreground mt-1">
+                              💡 Quantity is automatically calculated from
+                              BookLocations table
+                           </div>
+                        </div>
+                     </div>
                   </div>
 
                   {/* Action Buttons */}

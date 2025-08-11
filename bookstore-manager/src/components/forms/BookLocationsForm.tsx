@@ -56,6 +56,7 @@ interface BookLocationsFormProps {
    initialData?: any;
    onSave: (data: BookLocationFormData) => void;
    onDelete?: () => void;
+   onRefreshBook?: () => void; // New prop for refreshing parent book data
 }
 
 export function BookLocationsForm({
@@ -64,6 +65,7 @@ export function BookLocationsForm({
    initialData,
    onSave,
    onDelete,
+   onRefreshBook,
 }: BookLocationsFormProps) {
    const [isLoading, setIsLoading] = useState(true);
    const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,6 +159,10 @@ export function BookLocationsForm({
          }
 
          onSave(data);
+         // Refresh parent book data to show updated inventory quantity
+         if (onRefreshBook) {
+            onRefreshBook();
+         }
       } catch (error: any) {
          console.error("Error saving book location:", error);
 
@@ -167,13 +173,15 @@ export function BookLocationsForm({
                description:
                   errorData.suggestion ||
                   "Please update the existing entry instead.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } else {
             toast.error("Failed to save book location relationship", {
                description:
                   "There was an error saving the relationship. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          }
       } finally {
@@ -191,12 +199,17 @@ export function BookLocationsForm({
             description: `${initialData.slocName} has been removed from ${initialData.title}.`,
          });
          onDelete();
+         // Refresh parent book data to show updated inventory quantity
+         if (onRefreshBook) {
+            onRefreshBook();
+         }
       } catch (error) {
          console.error("Error deleting book location:", error);
          toast.error("Failed to delete book location relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

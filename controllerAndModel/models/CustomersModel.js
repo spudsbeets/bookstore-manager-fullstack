@@ -110,9 +110,8 @@ class CustomersModel extends BaseModel {
    // Override deleteById method to use stored procedure
    async deleteById(id) {
       try {
-         // Call the stored procedure
          await pool.query("CALL sp_deleteCustomer(?)", [id]);
-         return true; // If no error, deletion was successful
+         return { success: true, message: "Customer deleted successfully" };
       } catch (error) {
          console.error("Error deleting customer:", error);
          throw error;

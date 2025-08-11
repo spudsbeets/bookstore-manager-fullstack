@@ -124,6 +124,7 @@ VALUES (:book_id_from_dropdown, :author_id_from_dropdown);
 -- disassociate an author from a book
 DELETE FROM BookAuthors WHERE bookID = :book_ID_selected_from_list AND authorID = :author_ID_selected_from_list;
 
+
 -- Genres                                    --
 -- get all genres to populate a dropdown or list
 SELECT genreID, genreName FROM Genres;
@@ -443,7 +444,7 @@ ORDER BY
 DELETE FROM BookGenres WHERE bookGenreID = :bookGenreID_input;
 
 
-UPDATE BookAuthors SET genreID = :genreID_input, bookID = :bookID_input WHERE bookGenreID = :bookGenreID_to_update;
+UPDATE BookGenres SET genreID = :genreID_input, bookID = :bookID_input WHERE bookGenreID = :bookGenreID_to_update;
 
 
 SELECT b.title, b.bookID FROM Books b;

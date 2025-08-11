@@ -83,7 +83,8 @@ export function BookAuthorsList({
             toast.error("Failed to load book authors", {
                description:
                   "There was an error loading the book authors. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -120,7 +121,8 @@ export function BookAuthorsList({
          toast.error("Failed to delete book author relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

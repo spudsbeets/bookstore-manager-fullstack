@@ -110,13 +110,15 @@ export function GenresForm({
                description:
                   errorData.suggestion ||
                   "Please choose a different genre name.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } else {
             toast.error("Failed to save genre", {
                description:
                   "There was an error saving the genre. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          }
       } finally {

@@ -568,13 +568,89 @@ BEGIN
     JOIN Books ON Books.title = 'The Talisman'
     WHERE Genres.genreName = 'Horror Fiction';
 
-    SET FOREIGN_KEY_CHECKS=1;
+    -- Force sync all existing books with their BookLocations quantities
+    UPDATE Books b 
+    SET inventoryQty = (
+        SELECT COALESCE(SUM(bl.quantity), 0)
+        FROM BookLocations bl
+        WHERE bl.bookID = b.bookID
+    );
 
+    SET FOREIGN_KEY_CHECKS=1;
 
 END $$
 DELIMITER ;
 
 CALL sp_load_bookdb();
+
+-- =================================================================
+-- Create Inventory Management Triggers
+-- =================================================================
+-- These triggers automatically keep Books.inventoryQty in sync with BookLocations quantities
+
+-- Force drop all existing triggers and function
+DROP TRIGGER IF EXISTS after_booklocation_insert;
+DROP TRIGGER IF EXISTS after_booklocation_update;
+DROP TRIGGER IF EXISTS after_booklocation_delete;
+DROP FUNCTION IF EXISTS CalculateBookInventory;
+
+-- Create the function to calculate inventory (MariaDB compatible)
+DELIMITER $$
+CREATE FUNCTION CalculateBookInventory(book_id INT) 
+RETURNS INT
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE total_qty INT DEFAULT 0;
+    
+    SELECT COALESCE(SUM(quantity), 0) INTO total_qty
+    FROM BookLocations 
+    WHERE bookID = book_id;
+    
+    RETURN total_qty;
+END$$
+DELIMITER ;
+
+-- Create the triggers (MariaDB compatible)
+DELIMITER $$
+CREATE TRIGGER after_booklocation_insert
+AFTER INSERT ON BookLocations
+FOR EACH ROW
+BEGIN
+    UPDATE Books 
+    SET inventoryQty = CalculateBookInventory(NEW.bookID)
+    WHERE bookID = NEW.bookID;
+END$$
+
+CREATE TRIGGER after_booklocation_update
+AFTER UPDATE ON BookLocations
+FOR EACH ROW
+BEGIN
+    UPDATE Books 
+    SET inventoryQty = CalculateBookInventory(NEW.bookID)
+    WHERE bookID = NEW.bookID;
+END$$
+
+CREATE TRIGGER after_booklocation_delete
+AFTER DELETE ON BookLocations
+FOR EACH ROW
+BEGIN
+    UPDATE Books 
+    SET inventoryQty = CalculateBookInventory(OLD.bookID)
+    WHERE bookID = OLD.bookID;
+END$$
+DELIMITER ;
+
+-- Force sync all existing books with their BookLocations quantities
+UPDATE Books b 
+SET inventoryQty = (
+    SELECT COALESCE(SUM(bl.quantity), 0)
+    FROM BookLocations bl
+    WHERE bl.bookID = b.bookID
+);
+
+-- Verify triggers were created successfully
+SELECT '✅ Inventory triggers created successfully!' as Status;
 
 -- =================================================================
 -- Books
@@ -739,6 +815,9 @@ CREATE PROCEDURE sp_deleteCustomer(
     IN p_customerID INT
 )
 BEGIN
+    DECLARE order_count INT DEFAULT 0;
+    DECLARE error_msg VARCHAR(255);
+    
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -746,11 +825,22 @@ BEGIN
     END;
 
     START TRANSACTION;
+        -- Check if customer has orders
+        SELECT COUNT(*) INTO order_count FROM Orders WHERE customerID = p_customerID;
+        
+        IF order_count > 0 THEN
+            SET error_msg = CONCAT('Cannot delete customer. Customer has ', order_count, ' order(s). Delete orders first.');
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = error_msg;
+        END IF;
+        
         DELETE FROM Customers
         WHERE customerID = p_customerID;
     COMMIT;
 END $$
 DELIMITER ;
+
+
 
 
 -- =================================================================
@@ -1108,7 +1198,8 @@ BEGIN
         -- Handle null values properly
         IF isbn10_val = 'null' OR isbn10_val = 'NULL' THEN SET isbn10_val = NULL; END IF;
         IF isbn13_val = 'null' OR isbn13_val = 'NULL' THEN SET isbn13_val = NULL; END IF;
-        SET price_val = JSON_EXTRACT(p_data, '$.price');
+        -- Convert price to DECIMAL properly
+        SET price_val = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.price')) AS DECIMAL(10,2));
         SET inventory_val = COALESCE(JSON_EXTRACT(p_data, '$.inventoryQty'), 0);
         SET publisher_val = JSON_EXTRACT(p_data, '$.publisherID');
         -- Handle inStock with default value if not provided
@@ -1178,7 +1269,8 @@ BEGIN
         -- Extract values from JSON
         SET title_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.title'));
         SET pub_date_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.publicationDate'));
-        SET price_val = JSON_EXTRACT(p_data, '$.price');
+        -- Convert price to DECIMAL properly
+        SET price_val = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.price')) AS DECIMAL(10,2));
         SET inventory_val = JSON_EXTRACT(p_data, '$.inventoryQty');
         SET publisher_val = JSON_EXTRACT(p_data, '$.publisherID');
         
@@ -2581,3 +2673,5 @@ BEGIN
     COMMIT;
 END $$
 DELIMITER ;
+
+

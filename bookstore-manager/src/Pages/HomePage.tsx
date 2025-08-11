@@ -166,6 +166,8 @@ export function HomePage() {
          setError(error instanceof Error ? error.message : "Unknown error");
          toast.error("Failed to load dashboard data", {
             description: "Some statistics may not be accurate.",
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsLoading(false);

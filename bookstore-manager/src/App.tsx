@@ -100,7 +100,7 @@ function App() {
          <Router>
             <AppContent />
          </Router>
-         <Toaster richColors />
+         <Toaster richColors closeButton />
       </ThemeProvider>
    );
 }

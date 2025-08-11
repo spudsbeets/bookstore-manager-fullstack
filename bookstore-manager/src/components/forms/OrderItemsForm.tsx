@@ -130,6 +130,8 @@ export function OrderItemsForm({
             console.error("Error fetching books:", error);
             toast.error("Failed to load books", {
                description: "Please refresh the page and try again.",
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -180,6 +182,8 @@ export function OrderItemsForm({
          toast.error("Failed to save order item", {
             description:
                "There was an error saving the order item. Please try again.",
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsSubmitting(false);
@@ -203,6 +207,8 @@ export function OrderItemsForm({
          toast.error("Failed to delete order item", {
             description:
                "There was an error deleting the order item. Please try again.",
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

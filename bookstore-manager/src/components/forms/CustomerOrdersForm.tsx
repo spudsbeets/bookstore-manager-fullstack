@@ -49,7 +49,7 @@ const customerOrderSchema = z.object({
    orderDate: z.string(),
    orderTime: z.string(),
    total: z.number().min(0, "Total must be at least 0"),
-   taxRate: z.number().min(0, "Tax rate must be at least 0"),
+   taxRate: z.number().optional(), // Will be calculated automatically
    salesRateID: z.number(),
 });
 
@@ -102,12 +102,22 @@ export function CustomerOrdersForm({
          orderTime:
             initialData?.orderTime || new Date().toTimeString().split(" ")[0],
          total: initialData?.total || 0,
-         taxRate: initialData?.taxRate || 0,
+         taxRate: initialData?.taxRate || undefined, // Will be calculated automatically
          salesRateID: initialData?.salesRateID || 0,
       },
    });
 
    const onSubmit = (data: CustomerOrderFormData) => {
+      // Ensure tax rate is calculated from the selected sales location
+      if (data.salesRateID && !data.taxRate) {
+         const selectedRate = salesRates.find(
+            (rate: any) => rate.salesRateID === data.salesRateID
+         );
+         if (selectedRate) {
+            data.taxRate = selectedRate.taxRate;
+         }
+      }
+
       console.log("Customer order data:", data);
       onSave(data);
    };
@@ -244,9 +254,20 @@ export function CustomerOrdersForm({
                               <FormItem>
                                  <FormLabel>Sales Tax Location</FormLabel>
                                  <Select
-                                    onValueChange={(value) =>
-                                       field.onChange(Number(value))
-                                    }
+                                    onValueChange={(value) => {
+                                       const selectedRate = salesRates.find(
+                                          (rate: any) =>
+                                             rate.salesRateID === Number(value)
+                                       );
+                                       field.onChange(Number(value));
+                                       // Automatically set the tax rate when location is selected
+                                       if (selectedRate) {
+                                          form.setValue(
+                                             "taxRate",
+                                             selectedRate.taxRate
+                                          );
+                                       }
+                                    }}
                                     defaultValue={field.value?.toString()}
                                  >
                                     <FormControl>
@@ -265,6 +286,10 @@ export function CustomerOrdersForm({
                                        ))}
                                     </SelectContent>
                                  </Select>
+                                 <FormDescription>
+                                    Tax rate will be automatically calculated
+                                    based on location
+                                 </FormDescription>
                                  <FormMessage />
                               </FormItem>
                            )}
@@ -286,33 +311,6 @@ export function CustomerOrdersForm({
                               </div>
                            </div>
                         )}
-
-                     {/* Tax Rate (Auto-populated from sales rate) */}
-                     <FormField
-                        control={form.control}
-                        name="taxRate"
-                        render={({ field }) => (
-                           <FormItem>
-                              <FormLabel>Tax Rate (%)</FormLabel>
-                              <FormControl>
-                                 <Input
-                                    type="number"
-                                    step="0.0001"
-                                    placeholder="0.0000"
-                                    {...field}
-                                    onChange={(e) =>
-                                       field.onChange(Number(e.target.value))
-                                    }
-                                    disabled={mode === "view"}
-                                 />
-                              </FormControl>
-                              <FormDescription>
-                                 Tax rate for this order
-                              </FormDescription>
-                              <FormMessage />
-                           </FormItem>
-                        )}
-                     />
 
                      {/* Action Buttons */}
                      <div className="flex gap-2 pt-4">

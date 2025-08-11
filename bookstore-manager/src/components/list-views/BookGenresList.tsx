@@ -84,7 +84,8 @@ export function BookGenresList({
             toast.error("Failed to load book genres", {
                description:
                   "There was an error loading the book genres. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -119,7 +120,8 @@ export function BookGenresList({
          toast.error("Failed to delete book genre relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

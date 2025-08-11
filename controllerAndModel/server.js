@@ -76,16 +76,92 @@ app.post("/api/v1/reset", async (req, res) => {
 
       // Call the stored procedure to reset the database
       await db.query("CALL sp_load_bookdb()");
+      console.log("Database tables and data created successfully");
 
-      console.log(
-         "Database reset complete with sample data from stored procedure"
-      );
+      // Create inventory management triggers
+      // Citation: Based on user request to implement automatic inventory quantity sync
+      // User prompt: "we need to update the reset" and "ok the trigger works when reloading the page for the book, but we should update the frontend to where i dont have to refresh the page after deleting or adding a book location"
+      // Refinements: Implemented backend reset route that automatically creates inventory triggers after sp_load_bookdb(),
+      // ensuring triggers are always recreated on database reset and frontend automatically refreshes book data
+      // Implementation: Developed using Cursor AI for iterative problem-solving and MariaDB compatibility
+      console.log("Creating inventory triggers...");
+
+      // Drop existing triggers and function
+      await db.query("DROP TRIGGER IF EXISTS after_booklocation_insert");
+      await db.query("DROP TRIGGER IF EXISTS after_booklocation_update");
+      await db.query("DROP TRIGGER IF EXISTS after_booklocation_delete");
+      await db.query("DROP FUNCTION IF EXISTS CalculateBookInventory");
+
+      // Create the function to calculate inventory
+      await db.query(`
+         CREATE FUNCTION CalculateBookInventory(book_id INT) 
+         RETURNS INT
+         READS SQL DATA
+         DETERMINISTIC
+         BEGIN
+             DECLARE total_qty INT DEFAULT 0;
+             
+             SELECT COALESCE(SUM(quantity), 0) INTO total_qty
+             FROM BookLocations 
+             WHERE bookID = book_id;
+             
+             RETURN total_qty;
+         END
+      `);
+
+      // Create the triggers
+      await db.query(`
+         CREATE TRIGGER after_booklocation_insert
+         AFTER INSERT ON BookLocations
+         FOR EACH ROW
+         BEGIN
+             UPDATE Books 
+             SET inventoryQty = CalculateBookInventory(NEW.bookID)
+             WHERE bookID = NEW.bookID;
+         END
+      `);
+
+      await db.query(`
+         CREATE TRIGGER after_booklocation_update
+         AFTER UPDATE ON BookLocations
+         FOR EACH ROW
+         BEGIN
+             UPDATE Books 
+             SET inventoryQty = CalculateBookInventory(NEW.bookID)
+             WHERE bookID = NEW.bookID;
+         END
+      `);
+
+      await db.query(`
+         CREATE TRIGGER after_booklocation_delete
+         AFTER DELETE ON BookLocations
+         FOR EACH ROW
+         BEGIN
+             UPDATE Books 
+             SET inventoryQty = CalculateBookInventory(OLD.bookID)
+             WHERE bookID = OLD.bookID;
+         END
+      `);
+
+      // Force sync all existing books with their BookLocations quantities
+      await db.query(`
+         UPDATE Books b 
+         SET inventoryQty = (
+             SELECT COALESCE(SUM(bl.quantity), 0)
+             FROM BookLocations bl
+             WHERE bl.bookID = b.bookID
+         )
+      `);
+
+      console.log("Inventory triggers created and data synced successfully");
+
       res.json({
          status: "success",
-         message:
-            "Database reset complete with sample data from stored procedure",
+         message: "Database reset complete with inventory triggers",
          tablesCreated: "All tables created via sp_load_bookdb()",
          sampleDataInserted: "Sample data inserted via sp_load_bookdb()",
+         triggersCreated: "Inventory triggers created and activated",
+         dataSynced: "Book inventory quantities synced with BookLocations",
       });
    } catch (error) {
       console.error("Error resetting database:", error);

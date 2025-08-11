@@ -105,7 +105,8 @@ export function OrdersList({
             toast.error("Failed to load orders", {
                description:
                   "There was an error loading the orders. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -127,14 +128,25 @@ export function OrdersList({
    const handleDelete = async (order: Order) => {
       setIsDeleting(true);
       try {
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 500));
+         // Actually call the API to delete the order
+         await OrdersService.remove(order.orderID);
          setOrders(orders.filter((o) => o.orderID !== order.orderID));
          if (onDelete) {
             onDelete(order);
          }
+         // Show success toast
+         toast.success("Order deleted successfully!", {
+            description: `Order #${order.orderID} has been removed.`,
+         });
       } catch (error) {
          console.error("Error deleting order:", error);
+         // Show error toast
+         toast.error("Failed to delete order", {
+            description:
+               "There was an error deleting the order. Please try again.",
+            duration: 30000,
+            dismissible: true,
+         });
       } finally {
          setIsDeleting(false);
          setOrderToDelete(null);

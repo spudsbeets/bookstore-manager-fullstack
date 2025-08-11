@@ -138,8 +138,8 @@ export function Navbar() {
 
    return (
       <nav
-         className={`backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-50 ${currentLayout.className}`}
-         style={{ backgroundColor: "hsl(var(--background) / 0.95)" }}
+         className={`backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-b sticky top-0 z-50 ${currentLayout.className}`}
+         style={{ backgroundColor: "hsl(var(--background) / 0.75)" }}
       >
          <div className={currentLayout.containerClass}>
             {/* First Row - Brand and Controls */}
@@ -175,7 +175,7 @@ export function Navbar() {
             </div>
 
             {/* Second Row - Navigation Items (Refactored) */}
-            <div className="hidden md:flex items-center justify-center py-2 border-t">
+            <div className="hidden md:flex items-center justify-center py-2 border-t border-border/60">
                <div className="flex items-center space-x-2 flex-wrap justify-center">
                   <Button
                      variant="ghost"
@@ -202,8 +202,8 @@ export function Navbar() {
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
                <div
-                  className="md:hidden border-t backdrop-blur"
-                  style={{ backgroundColor: "hsl(var(--background) / 0.95)" }}
+                  className="md:hidden border-t backdrop-blur-xl"
+                  style={{ backgroundColor: "hsl(var(--background) / 0.8)" }}
                >
                   <div className="px-4 py-2 space-y-2">
                      <Button

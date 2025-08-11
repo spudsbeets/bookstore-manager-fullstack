@@ -240,6 +240,9 @@ CREATE PROCEDURE sp_deleteCustomer(
     IN p_customerID INT
 )
 BEGIN
+    DECLARE order_count INT DEFAULT 0;
+    DECLARE error_msg VARCHAR(255);
+    
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -247,6 +250,15 @@ BEGIN
     END;
 
     START TRANSACTION;
+        -- Check if customer has orders
+        SELECT COUNT(*) INTO order_count FROM Orders WHERE customerID = p_customerID;
+        
+        IF order_count > 0 THEN
+            SET error_msg = CONCAT('Cannot delete customer. Customer has ', order_count, ' order(s). Delete orders first.');
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = error_msg;
+        END IF;
+        
         DELETE FROM Customers
         WHERE customerID = p_customerID;
     COMMIT;
@@ -1414,3 +1426,108 @@ BEGIN
 
 END $$
 DELIMITER ;
+
+-- =================================================================
+-- Inventory Management Triggers
+-- =================================================================
+-- These triggers automatically keep Books.inventoryQty in sync with BookLocations quantities
+-- 
+-- CITATION: Based on user request to "have the inventory quantity for a book be a trigger and 
+-- to remove the option from the form but pull the value based on the quantity in the slsocs"
+-- 
+-- ADDITIONAL USER REQUESTS AND REFINEMENTS:
+-- - User: "we need to update the reset" - Implemented backend reset route that automatically creates triggers
+-- - User: "ok the trigger works when reloading the page for the book, but we should update the frontend to where i dont have to refresh the page after deleting or adding a book location"
+-- - Frontend: Added automatic book data refresh after BookLocations CRUD operations
+-- - Backend: Enhanced reset endpoint to recreate triggers after sp_load_bookdb() execution
+-- 
+-- REFINEMENTS FOR MARIADB:
+-- - Added explicit variable declaration for error_msg VARCHAR(255) before using CONCAT
+-- - Used proper MariaDB syntax for SIGNAL statements
+-- - Ensured all triggers use consistent DELIMITER handling
+-- - Added proper error handling and transaction management
+-- - Resolved MariaDB DDL restrictions by implementing triggers directly in reset route
+
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS after_booklocation_insert;
+DROP TRIGGER IF EXISTS after_booklocation_update;
+DROP TRIGGER IF EXISTS after_booklocation_delete;
+
+-- Drop existing function if it exists
+DROP FUNCTION IF EXISTS CalculateBookInventory;
+
+-- Create the function to calculate inventory
+DELIMITER $$
+
+CREATE FUNCTION CalculateBookInventory(book_id INT) 
+RETURNS INT
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE total_qty INT DEFAULT 0;
+    
+    SELECT COALESCE(SUM(quantity), 0) INTO total_qty
+    FROM BookLocations 
+    WHERE bookID = book_id;
+    
+    RETURN total_qty;
+END$$
+
+-- Create the triggers
+CREATE TRIGGER after_booklocation_insert
+AFTER INSERT ON BookLocations
+FOR EACH ROW
+BEGIN
+    UPDATE Books 
+    SET inventoryQty = CalculateBookInventory(NEW.bookID)
+    WHERE bookID = NEW.bookID;
+END$$
+
+CREATE TRIGGER after_booklocation_update
+AFTER UPDATE ON BookLocations
+FOR EACH ROW
+BEGIN
+    UPDATE Books 
+    SET inventoryQty = CalculateBookInventory(NEW.bookID)
+    WHERE bookID = NEW.bookID;
+END$$
+
+CREATE TRIGGER after_booklocation_delete
+AFTER DELETE ON BookLocations
+FOR EACH ROW
+BEGIN
+    UPDATE Books 
+    SET inventoryQty = CalculateBookInventory(OLD.bookID)
+    WHERE bookID = OLD.bookID;
+END$$
+
+DELIMITER ;
+
+-- Manually sync all existing books with their BookLocations quantities
+UPDATE Books b 
+SET inventoryQty = (
+    SELECT COALESCE(SUM(bl.quantity), 0)
+    FROM BookLocations bl
+    WHERE bl.bookID = b.bookID
+);
+
+-- =================================================================
+-- COMPLETE INVENTORY MANAGEMENT IMPLEMENTATION
+-- =================================================================
+-- 
+-- CITATION: Complete implementation based on iterative user feedback and MariaDB compatibility requirements
+-- Development: Implemented using Cursor AI for iterative problem-solving and technical refinements
+-- 
+-- USER PROMPTS AND EVOLUTION:
+-- 1. Initial request: "would it be a breaking change to have the inventory quantity for a book be a trigger and to remove the option from the form but pull the value based on the quantity in the slsocs"
+-- 2. Backend implementation: "i want the backend reset route to drop the triggers and re add them since they arent triggering on bookklocations inserts"
+-- 3. Frontend enhancement: "ok the trigger works when reloading the page for the book, but we should update the frontend to where i dont have to refresh the page after deleting or adding a book location"
+-- 
+-- TECHNICAL IMPLEMENTATION:
+-- - Database: MariaDB-compatible triggers for INSERT/UPDATE/DELETE on BookLocations
+-- - Backend: Enhanced reset endpoint with automatic trigger recreation
+-- - Frontend: Real-time book data refresh after BookLocations operations
+-- - Result: Seamless inventory management with no manual page refreshes required
+-- 
+-- DATE: August 4, 2025
+-- STATUS: Complete and fully functional

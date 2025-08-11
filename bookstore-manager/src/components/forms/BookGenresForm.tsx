@@ -186,14 +186,16 @@ export function BookGenresForm({
                   description:
                      errorData.suggestion ||
                      "Please choose a different genre or book.",
-                  duration: Infinity,
+                  duration: 30000,
+                  dismissible: true,
                }
             );
          } else {
             toast.error("Failed to save book genre relationship", {
                description:
                   "There was an error saving the relationship. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          }
       } finally {
@@ -216,7 +218,8 @@ export function BookGenresForm({
          toast.error("Failed to delete book genre relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

@@ -37,6 +37,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Users, Tags, MapPin /*Link*/ } from "lucide-react";
 import { type Book } from "@/services/BooksService";
+import BooksService from "@/services/BooksService";
 
 export function BooksPage() {
    const [currentView, setCurrentView] = useState<
@@ -172,6 +173,10 @@ export function BooksPage() {
    // Book Location handlers
    const handleBookLocationDelete = (bookLocation: any) => {
       console.log("Delete book location:", bookLocation);
+      // Refresh book data to show updated inventory quantity
+      if (selectedBook) {
+         refreshBookData();
+      }
    };
 
    const handleAddBookLocation = () => {
@@ -186,18 +191,34 @@ export function BooksPage() {
 
    const handleViewBookLocation = (bookLocation: any) => {
       setSelectedBookLocation(bookLocation);
-      setBookLocationView("view");
+      setSelectedBookLocation(null);
    };
 
    const handleBookLocationSave = (data: any) => {
       console.log("Save book location:", data);
       setBookLocationView("list");
       setSelectedBookLocation(null);
+      // Refresh book data to show updated inventory quantity
+      if (selectedBook) {
+         refreshBookData();
+      }
    };
 
    const handleBookLocationBack = () => {
       setBookLocationView("list");
       setSelectedBookLocation(null);
+   };
+
+   // Function to refresh book data after location changes
+   const refreshBookData = async () => {
+      if (selectedBook) {
+         try {
+            const response = await BooksService.get(selectedBook.bookID);
+            setSelectedBook(response.data);
+         } catch (error) {
+            console.error("Error refreshing book data:", error);
+         }
+      }
    };
 
    return (
@@ -468,6 +489,7 @@ export function BooksPage() {
                                        onAdd={handleAddBookLocation}
                                        onEdit={handleEditBookLocation}
                                        onView={handleViewBookLocation}
+                                       onRefreshBook={refreshBookData}
                                     />
                                  )}
 
@@ -496,6 +518,7 @@ export function BooksPage() {
                                                      )
                                                 : undefined
                                           }
+                                          onRefreshBook={refreshBookData}
                                        />
                                     </div>
                                  )}
