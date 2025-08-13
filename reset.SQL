@@ -1327,6 +1327,10 @@ BEGIN
         SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
         SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
         
+        -- Convert empty strings to NULL for optional fields
+        IF middle_name_val = '' OR middle_name_val = 'null' THEN SET middle_name_val = NULL; END IF;
+        IF last_name_val = '' OR last_name_val = 'null' THEN SET last_name_val = NULL; END IF;
+        
         -- Insert
         INSERT INTO Authors (firstName, middleName, lastName)
         VALUES (first_name_val, middle_name_val, last_name_val);
@@ -1368,6 +1372,10 @@ BEGIN
         SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
         SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
         SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        
+        -- Convert empty strings to NULL for optional fields
+        IF middle_name_val = '' OR middle_name_val = 'null' THEN SET middle_name_val = NULL; END IF;
+        IF last_name_val = '' OR last_name_val = 'null' THEN SET last_name_val = NULL; END IF;
         
         -- Update
         UPDATE Authors

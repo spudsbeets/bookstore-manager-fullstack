@@ -587,6 +587,9 @@ DELIMITER ;
 -- Authors Procedures
 
 -- Dynamic create procedure for Authors table
+-- citation prompt ai had an error with handling of the empty strings showing as null on the front end, 
+-- ai fixed it by adding the if statements to convert the empty strings to null
+-- used auto agent on cursor to fix the error
 DROP PROCEDURE IF EXISTS sp_dynamic_create_authors;
 DELIMITER $$
 CREATE PROCEDURE sp_dynamic_create_authors(
@@ -610,6 +613,10 @@ BEGIN
         SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
         SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
         
+        -- Convert empty strings to NULL for optional fields
+        IF middle_name_val = '' OR middle_name_val = 'null' THEN SET middle_name_val = NULL; END IF;
+        IF last_name_val = '' OR last_name_val = 'null' THEN SET last_name_val = NULL; END IF;
+        
         -- Insert
         INSERT INTO Authors (firstName, middleName, lastName)
         VALUES (first_name_val, middle_name_val, last_name_val);
@@ -628,6 +635,9 @@ END $$
 DELIMITER ;
 
 -- Dynamic update procedure for Authors table
+-- citation prompt ai had an error with handling of the empty strings showing as null on the front end, 
+-- ai fixed it by adding the if statements to convert the empty strings to null
+-- used auto agent on cursor to fix the error
 DROP PROCEDURE IF EXISTS sp_dynamic_update_authors;
 DELIMITER $$
 CREATE PROCEDURE sp_dynamic_update_authors(
@@ -651,6 +661,10 @@ BEGIN
         SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
         SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
         SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        
+        -- Convert empty strings to NULL for optional fields
+        IF middle_name_val = '' OR middle_name_val = 'null' THEN SET middle_name_val = NULL; END IF;
+        IF last_name_val = '' OR last_name_val = 'null' THEN SET last_name_val = NULL; END IF;
         
         -- Update
         UPDATE Authors
@@ -1503,31 +1517,3 @@ END$$
 
 DELIMITER ;
 
--- Manually sync all existing books with their BookLocations quantities
-UPDATE Books b 
-SET inventoryQty = (
-    SELECT COALESCE(SUM(bl.quantity), 0)
-    FROM BookLocations bl
-    WHERE bl.bookID = b.bookID
-);
-
--- =================================================================
--- COMPLETE INVENTORY MANAGEMENT IMPLEMENTATION
--- =================================================================
--- 
--- CITATION: Complete implementation based on iterative user feedback and MariaDB compatibility requirements
--- Development: Implemented using Cursor AI for iterative problem-solving and technical refinements
--- 
--- USER PROMPTS AND EVOLUTION:
--- 1. Initial request: "would it be a breaking change to have the inventory quantity for a book be a trigger and to remove the option from the form but pull the value based on the quantity in the slsocs"
--- 2. Backend implementation: "i want the backend reset route to drop the triggers and re add them since they arent triggering on bookklocations inserts"
--- 3. Frontend enhancement: "ok the trigger works when reloading the page for the book, but we should update the frontend to where i dont have to refresh the page after deleting or adding a book location"
--- 
--- TECHNICAL IMPLEMENTATION:
--- - Database: MariaDB-compatible triggers for INSERT/UPDATE/DELETE on BookLocations
--- - Backend: Enhanced reset endpoint with automatic trigger recreation
--- - Frontend: Real-time book data refresh after BookLocations operations
--- - Result: Seamless inventory management with no manual page refreshes required
--- 
--- DATE: August 4, 2025
--- STATUS: Complete and fully functional

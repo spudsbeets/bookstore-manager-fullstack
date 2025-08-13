@@ -37,6 +37,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Edit, Eye, Trash2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import AuthorsService from "@/services/AuthorsService";
+import { toast } from "sonner";
 
 // Enhanced schema with input sanitization
 const authorSchema = z.object({
@@ -94,14 +95,20 @@ export function AuthorsForm({
       resolver: zodResolver(authorSchema),
       defaultValues: initialData || {
          firstName: "",
-         middleName: null,
-         lastName: null,
+         middleName: "",
+         lastName: "",
       },
    });
 
    useEffect(() => {
       if (initialData) {
-         form.reset(initialData);
+         // Convert null values to empty strings for the form
+         const formData = {
+            ...initialData,
+            middleName: initialData.middleName || "",
+            lastName: initialData.lastName || "",
+         };
+         form.reset(formData);
       }
    }, [initialData, form]);
 
@@ -112,22 +119,46 @@ export function AuthorsForm({
    async function onSubmit(data: AuthorFormValues) {
       setIsSubmitting(true);
       try {
+         // Prepare data for submission - convert empty strings to null for optional fields
+         const submissionData = {
+            ...data,
+            middleName: data.middleName?.trim() || null,
+            lastName: data.lastName?.trim() || null,
+         };
+
          if (isCreateMode) {
             // Create new author
-            await AuthorsService.create(data);
+            await AuthorsService.create(submissionData);
          } else if (isEditMode && initialData?.authorID) {
             // Update existing author
-            await AuthorsService.update(initialData.authorID, data);
+            await AuthorsService.update(initialData.authorID, submissionData);
          }
 
          if (onSave) {
-            onSave(data);
+            onSave(submissionData);
          }
          setShowSuccess(true);
          setTimeout(() => setShowSuccess(false), 3000);
-      } catch (error) {
+      } catch (error: any) {
          console.error("Error saving author:", error);
-         // You might want to show an error message to the user here
+
+         // Show error toast with better error handling
+         let errorMessage = "Failed to save author";
+         let errorDescription =
+            "There was an error saving the author. Please try again.";
+
+         if (error.response?.data?.error) {
+            errorMessage = error.response.data.error;
+            errorDescription =
+               error.response.data.message ||
+               "Please check your input and try again.";
+         }
+
+         toast.error(errorMessage, {
+            description: errorDescription,
+            duration: 30000,
+            dismissible: true,
+         });
       } finally {
          setIsSubmitting(false);
       }
@@ -142,9 +173,26 @@ export function AuthorsForm({
          if (onDelete) {
             onDelete();
          }
-      } catch (error) {
+      } catch (error: any) {
          console.error("Error deleting author:", error);
-         // You might want to show an error message to the user here
+
+         // Show error toast with better error handling
+         let errorMessage = "Failed to delete author";
+         let errorDescription =
+            "There was an error deleting the author. Please try again.";
+
+         if (error.response?.data?.error) {
+            errorMessage = error.response.data.error;
+            errorDescription =
+               error.response.data.message ||
+               "Please check your input and try again.";
+         }
+
+         toast.error(errorMessage, {
+            description: errorDescription,
+            duration: 30000,
+            dismissible: true,
+         });
       } finally {
          setIsDeleting(false);
          setShowDeleteDialog(false);

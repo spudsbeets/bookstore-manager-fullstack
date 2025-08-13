@@ -38,7 +38,42 @@ export async function create(req, res) {
       res.status(201).json(book);
    } catch (err) {
       console.error("Error creating book:", err);
-      res.status(400).json({ error: "Failed to create book" });
+
+      // Provide more specific error messages
+      if (err.message && err.message.includes("cannot be null")) {
+         res.status(400).json({
+            error: "Validation Error",
+            message:
+               "Required fields cannot be empty. Please ensure Title, Publication Date, and Price are provided.",
+         });
+      } else if (err.message && err.message.includes("Data too long")) {
+         res.status(400).json({
+            error: "Validation Error",
+            message: "One or more fields exceed the maximum length allowed.",
+         });
+      } else if (err.message && err.message.includes("Incorrect date value")) {
+         res.status(400).json({
+            error: "Validation Error",
+            message:
+               "Invalid date format. Please select a valid publication date.",
+         });
+      } else if (
+         err.message &&
+         err.message.includes("Incorrect decimal value")
+      ) {
+         res.status(400).json({
+            error: "Validation Error",
+            message:
+               "Invalid price format. Please enter a valid price (e.g., 19.99).",
+         });
+      } else {
+         res.status(400).json({
+            error: "Failed to create book",
+            message:
+               err.message ||
+               "There was an error creating the book. Please check your input and try again.",
+         });
+      }
    }
 }
 
@@ -49,7 +84,42 @@ export async function update(req, res) {
       res.json(book);
    } catch (err) {
       console.error("Error updating book:", err);
-      res.status(400).json({ error: "Failed to update book" });
+
+      // Provide more specific error messages
+      if (err.message && err.message.includes("cannot be null")) {
+         res.status(400).json({
+            error: "Validation Error",
+            message:
+               "Required fields cannot be empty. Please ensure Title, Publication Date, and Price are provided.",
+         });
+      } else if (err.message && err.message.includes("Data too long")) {
+         res.status(400).json({
+            error: "Validation Error",
+            message: "One or more fields exceed the maximum length allowed.",
+         });
+      } else if (err.message && err.message.includes("Incorrect date value")) {
+         res.status(400).json({
+            error: "Validation Error",
+            message:
+               "Invalid date format. Please select a valid publication date.",
+         });
+      } else if (
+         err.message &&
+         err.message.includes("Incorrect decimal value")
+      ) {
+         res.status(400).json({
+            error: "Validation Error",
+            message:
+               "Invalid price format. Please enter a valid price (e.g., 19.99).",
+         });
+      } else {
+         res.status(400).json({
+            error: "Failed to update book",
+            message:
+               err.message ||
+               "There was an error updating the book. Please check your input and try again.",
+         });
+      }
    }
 }
 
