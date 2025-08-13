@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
    Table,
    TableBody,
@@ -195,7 +196,12 @@ export function BookGenresList({
             <CardContent>
                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
+                     <Label htmlFor="book-genres-search" className="sr-only">
+                        Search book genres
+                     </Label>
                      <Input
+                        id="book-genres-search"
+                        name="book-genres-search"
                         placeholder="Search book genres..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

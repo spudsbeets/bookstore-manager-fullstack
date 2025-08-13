@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
    Table,
    TableBody,
@@ -196,12 +197,17 @@ export function BookAuthorsList({
             <CardContent>
                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
+                     <Label htmlFor="book-authors-search" className="sr-only">
+                        Search book authors
+                     </Label>
                      <Input
+                        id="book-authors-search"
+                        name="book-authors-search"
                         placeholder="Search book authors..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="max-w-sm"
-                     />
+                      />
                   </div>
 
                   <Table>

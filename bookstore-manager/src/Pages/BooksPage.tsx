@@ -9,7 +9,7 @@
  * @ai_tool_usage The page components were generated using Cursor by adapting the official shadcn/ui examples. The generated code was then refined and customized for this application.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { BooksForm } from "@/components/forms/BooksForm";
 import { BookLocationsForm } from "@/components/forms/BookLocationsForm";
@@ -68,10 +68,22 @@ export function BooksPage() {
    >("list");
    const [selectedBookLocation, setSelectedBookLocation] = useState<any>(null);
 
+   // Debug logging for state changes
+   useEffect(() => {
+      console.log("BooksPage state changed:", {
+         currentView,
+         selectedBook: selectedBook
+            ? { bookID: selectedBook.bookID, title: selectedBook.title }
+            : null,
+         activeTab,
+      });
+   }, [currentView, selectedBook, activeTab]);
+
    const handleCreate = () => {
       setCurrentView("create");
    };
    const handleEdit = (book: Book) => {
+      console.log("Edit triggered for book:", book);
       setSelectedBook(book);
       setCurrentView("edit");
       setActiveTab("details");
@@ -227,12 +239,15 @@ export function BooksPage() {
             <div className="mb-6">
                <h1 className="text-2xl font-bold mb-4">Books Management</h1>
                <div className="flex flex-col items-start gap-2">
-                  <Label>View Options</Label>
+                  <Label htmlFor="books-view-options">View Options</Label>
                   <Select
                      value={viewLabels[currentView]}
                      onValueChange={handleViewChange}
                   >
-                     <SelectTrigger className="w-[200px]">
+                     <SelectTrigger
+                        id="books-view-options"
+                        className="w-[200px]"
+                     >
                         <SelectValue />
                      </SelectTrigger>
                      <SelectContent>

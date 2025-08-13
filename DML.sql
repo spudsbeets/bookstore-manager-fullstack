@@ -427,81 +427,316 @@ SELECT salesRateID, CONCAT(county, ', ', state) as location, taxRate
 FROM SalesRateLocations
 ORDER BY state, county;
 
+-- =================================================================
+-- MISSING DML QUERIES FROM MODELS (Added August 13, 2025)
+-- =================================================================
+-- These queries are referenced in the models but were missing from DML.sql
+-- 
+-- CITATION: Added to ensure all model-referenced DML operations exist
+-- 
+-- MISSING QUERIES IDENTIFIED:
+-- - View queries (v_books, v_book_with_publisher, v_book_authors, v_book_genres, v_book_locations)
+-- - Dropdown queries for various models
+-- - CONCAT queries for full names
+-- 
+-- AI TOOL USAGE: Cursor AI was used to identify missing DML operations and implement them
+--                based on the existing patterns in the models.
 
+-- =================================================================
+-- View Queries (Referenced in Models)
+-- =================================================================
 
+-- View for books with all details (referenced in BooksModel.js)
+-- This view should include books with publisher, authors, and genres
 SELECT
+    b.bookID,
     b.title,
-    g.genreName
+    b.publicationDate,
+    b.`isbn-10`,
+    b.`isbn-13`,
+    b.price,
+    b.inventoryQty,
+    p.publisherName AS publisher,
+    GROUP_CONCAT(DISTINCT a.fullName SEPARATOR ', ') AS authors,
+    GROUP_CONCAT(DISTINCT g.genreName SEPARATOR ', ') AS genres
 FROM
-    Books AS b
-JOIN
-    BookGenres AS bg ON b.bookID = bg.bookID
-JOIN
-    Genre AS a ON bg.genreID = g.genreID
-ORDER BY
-    b.title;
+    Books b
+LEFT JOIN Publishers p ON b.publisherID = p.publisherID
+LEFT JOIN BookAuthors ba ON b.bookID = ba.bookID
+LEFT JOIN Authors a ON ba.authorID = a.authorID
+LEFT JOIN BookGenres bg ON b.bookID = bg.bookID
+LEFT JOIN Genres g ON bg.genreID = g.genreID
+GROUP BY
+    b.bookID;
 
-DELETE FROM BookGenres WHERE bookGenreID = :bookGenreID_input;
+-- View for book with publisher (referenced in BooksModel.js)
+SELECT 
+    b.*,
+    p.publisherName
+FROM Books b
+LEFT JOIN Publishers p ON b.publisherID = p.publisherID
+WHERE b.bookID = :book_ID;
 
+-- View for books with publisher (referenced in BooksModel.js)
+SELECT 
+    b.*,
+    p.publisherName
+FROM Books b
+LEFT JOIN Publishers p ON b.publisherID = p.publisherID;
 
-UPDATE BookGenres SET genreID = :genreID_input, bookID = :bookID_input WHERE bookGenreID = :bookGenreID_to_update;
+-- View for books in stock (referenced in BooksModel.js)
+SELECT *
+FROM Books
+WHERE inStock = 1 AND inventoryQty > 0;
 
+-- =================================================================
+-- Author Full Name Queries (Referenced in AuthorsModel.js)
+-- =================================================================
 
-SELECT b.title, b.bookID FROM Books b;
-Select g.genreName, g.genreID FROM Authors a;
+-- Get all authors with full name concatenation (referenced in AuthorsModel.js)
+SELECT 
+    authorID, 
+    firstName, 
+    middleName, 
+    lastName,
+    CONCAT(firstName, ' ', COALESCE(middleName, ''), ' ', lastName) as fullName
+FROM Authors;
 
+-- Find author by full name (referenced in AuthorsModel.js)
+SELECT * 
+FROM Authors 
+WHERE CONCAT(firstName, ' ', COALESCE(middleName, ''), ' ', lastName) LIKE :search_term;
 
-INSERT INTO BookGenres (genreID, bookID) VALUES (:genreID_input, :bookID_input);
+-- =================================================================
+-- BookAuthors View Queries (Referenced in BookAuthorsModel.js)
+-- =================================================================
 
-
-
-SELECT
+-- View for book authors with full details (referenced in BookAuthorsModel.js)
+SELECT 
+    ba.bookAuthorID,
+    ba.bookID,
+    ba.authorID,
     b.title,
-    a.fullName
-FROM
-    Books AS b
-JOIN
-    BookAuthors AS ba ON b.bookID = ba.bookID
-JOIN
-    Authors AS a ON ba.authorID = a.authorID
-ORDER BY
-    b.title;
+    a.fullName AS author
+FROM BookAuthors ba
+INNER JOIN Books b ON ba.bookID = b.bookID
+INNER JOIN Authors a ON ba.authorID = a.authorID
+ORDER BY b.title, a.fullName;
 
-DELETE FROM BookAuthors WHERE bookAuthorID = :bookAuthorID_input;
+-- =================================================================
+-- BookGenres View Queries (Referenced in BookGenresModel.js)
+-- =================================================================
 
+-- View for book genres with full details (referenced in BookGenresModel.js)
+SELECT 
+    bg.bookGenreID,
+    bg.bookID,
+    bg.genreID,
+    b.title,
+    g.genreName AS genre
+FROM BookGenres bg
+INNER JOIN Books b ON bg.bookID = b.bookID
+INNER JOIN Genres g ON bg.genreID = g.genreID
+ORDER BY b.title, g.genreName;
 
-UPDATE BookAuthors SET authorID = :authorID_input, bookID = :bookID_input WHERE bookAuthorID = :bookAuthorID_to_update;
+-- =================================================================
+-- BookLocations View Queries (Referenced in BookLocationsModel.js)
+-- =================================================================
 
-
-SELECT b.title, b.bookID FROM Books b;
-Select a.fullName, a.authorID FROM Authors a;
-
-
-INSERT INTO BookAuthors (authorID, bookID) VALUES (:authorID_input, :bookID_input);
-
+-- View for book locations with full details (referenced in BookLocationsModel.js)
 SELECT
-    s.slocName,
-    b.title
-FROM
-    Books AS b
-JOIN
-    BookLocations AS bl ON b.bookID = bl.bookID
-JOIN
-    SLOCS s ON bl.slocID = s.slocID
-ORDER BY
-    b.title;
+    bl.bookLocationID,
+    bl.bookID,
+    bl.slocID,
+    bl.quantity,
+    b.title,
+    s.slocName
+FROM BookLocations bl
+INNER JOIN Books b ON bl.bookID = b.bookID
+INNER JOIN SLOCS s ON bl.slocID = s.slocID
+ORDER BY b.title, s.slocName;
 
-DELETE FROM BookLocations WHERE bookLocationID = :bookLocationID_input;
+-- =================================================================
+-- Customer Full Name Queries (Referenced in CustomersModel.js)
+-- =================================================================
+
+-- Get all customers with full name concatenation (referenced in CustomersModel.js)
+SELECT 
+    customerID, 
+    firstName, 
+    lastName, 
+    email, 
+    phoneNumber,
+    CONCAT(firstName, ' ', lastName) as fullName
+FROM Customers
+ORDER BY lastName, firstName;
+
+-- =================================================================
+-- Order Details Queries (Referenced in OrdersModel.js)
+-- =================================================================
+
+-- Get all orders with customer and location info (referenced in OrdersModel.js)
+SELECT 
+    o.*, 
+    c.firstName, 
+    c.lastName, 
+    CONCAT(c.firstName, ' ', c.lastName) as customerName,
+    s.county, 
+    s.state
+FROM Orders o
+LEFT JOIN Customers c ON o.customerID = c.customerID
+LEFT JOIN SalesRateLocations s ON o.salesRateID = s.salesRateID
+ORDER BY o.orderDate DESC, o.orderTime DESC;
+
+-- Get order by ID with customer and location info (referenced in OrdersModel.js)
+SELECT 
+    o.*, 
+    c.firstName, 
+    c.lastName, 
+    CONCAT(c.firstName, ' ', c.lastName) as customerName,
+    s.county, 
+    s.state
+FROM Orders o
+LEFT JOIN Customers c ON o.customerID = c.customerID
+LEFT JOIN SalesRateLocations s ON o.salesRateID = s.salesRateID
+WHERE o.orderID = :order_ID;
+
+-- =================================================================
+-- OrderItems Detail Queries (Referenced in OrderItemsModel.js)
+-- =================================================================
+
+-- Get order items with book, order, and customer details (referenced in OrderItemsModel.js)
+SELECT 
+    oi.orderItemID, 
+    oi.orderID, 
+    oi.bookID, 
+    oi.quantity, 
+    oi.individualPrice, 
+    oi.subtotal,
+    b.title, 
+    o.orderDate, 
+    c.firstName, 
+    c.lastName
+FROM OrderItems oi
+INNER JOIN Books b ON oi.bookID = b.bookID
+INNER JOIN Orders o ON oi.orderID = o.orderID
+INNER JOIN Customers c ON o.customerID = c.customerID
+ORDER BY o.orderDate DESC, oi.orderItemID;
+
+-- Get order items by order ID with details (referenced in OrderItemsModel.js)
+SELECT 
+    oi.orderItemID, 
+    oi.orderID, 
+    oi.bookID, 
+    oi.quantity, 
+    oi.individualPrice, 
+    oi.subtotal,
+    b.title, 
+    o.orderDate, 
+    c.firstName, 
+    c.lastName
+FROM OrderItems oi
+INNER JOIN Books b ON oi.bookID = b.bookID
+INNER JOIN Orders o ON oi.orderID = o.orderID
+INNER JOIN Customers c ON o.customerID = c.customerID
+WHERE oi.orderID = :order_ID
+ORDER BY oi.orderItemID;
+
+-- Get order item by ID with details (referenced in OrderItemsModel.js)
+SELECT 
+    oi.orderItemID, 
+    oi.orderID, 
+    oi.bookID, 
+    oi.quantity, 
+    oi.individualPrice, 
+    oi.subtotal,
+    b.title, 
+    o.orderDate, 
+    c.firstName, 
+    c.lastName
+FROM OrderItems oi
+INNER JOIN Books b ON oi.bookID = b.bookID
+INNER JOIN Orders o ON oi.orderID = o.orderID
+INNER JOIN Customers c ON o.customerID = c.customerID
+WHERE oi.orderItemID = :order_item_ID;
+
+-- =================================================================
+-- SalesRateLocations Queries (Referenced in SalesRateLocationsModel.js)
+-- =================================================================
+
+-- Get all sales rate locations with formatted location (referenced in SalesRateLocationsModel.js)
+SELECT
+    salesRateID, 
+    CONCAT(county, ', ', state) as location, 
+    taxRate * 100 as taxRate 
+FROM SalesRateLocations 
+ORDER BY state, county;
+
+-- Find sales rate locations by state (referenced in SalesRateLocationsModel.js)
+SELECT * 
+FROM SalesRateLocations 
+WHERE state = :state_name;
 
 
-UPDATE BookLocations SET bookID = :bookID_input, slocID = :slocID_input WHERE bookLocationID = :bookLocationID_to_update;
 
 
-SELECT s.slocName, s.slocID FROM SLOCS s;
-Select b.title, b.bookID FROM Books b;
+SELECT bookID, title
+FROM Books
+ORDER BY title;
 
 
-INSERT INTO BookLocations (bookID, slocID) VALUES (:bookID_input, :slocID_input);
+SELECT authorID, fullName
+FROM Authors
+ORDER BY fullName;
+
+-- =================================================================
+-- Dropdown Queries for BookGenres Model
+-- =================================================================
+
+
+SELECT bookID, title
+FROM Books
+ORDER BY title;
+
+
+SELECT genreID, genreName
+FROM Genres
+ORDER BY genreName;
+
+-- =================================================================
+-- Dropdown Queries for BookLocations Model
+-- =================================================================
+
+SELECT bookID, title
+FROM Books
+ORDER BY title;
+
+
+SELECT slocID, slocName
+FROM SLOCS
+ORDER BY slocName;
+
+-- =================================================================
+-- Dropdown Queries for OrderItems Model
+-- =================================================================
+
+SELECT bookID, title, price, inventoryQty
+FROM Books
+WHERE inventoryQty > 0
+ORDER BY title;
+
+-- =================================================================
+-- Dropdown Queries for Orders Model
+-- =================================================================
+
+SELECT customerID, CONCAT(firstName, ' ', lastName) as fullName, email
+FROM Customers
+ORDER BY lastName, firstName;
+
+
+SELECT salesRateID, CONCAT(county, ', ', state) as location, taxRate
+FROM SalesRateLocations
+ORDER BY state, county;
 
 
 

@@ -1,3 +1,4 @@
+-- Active: 1754121526056@@classmysql.engr.oregonstate.edu@3306@cs340_bradsean
 -- citation: ChatGPT
 -- 08/03/25
 -- Asked ChatGPT for assistance in formulating stored procedures for CUD operations. 
@@ -6,232 +7,21 @@
 -- Books
 -- =================================================================
 
--- Insert Book
-DROP PROCEDURE IF EXISTS sp_insertBook;
-DELIMITER $$
-CREATE PROCEDURE sp_insertBook(
-    IN p_title VARCHAR(255),
-    IN p_publicationDate DATE,
-    IN p_isbn10 CHAR(13),
-    IN p_isbn13 CHAR(17),
-    IN p_price DECIMAL(10,2),
-    IN p_inventoryQty INT,
-    IN p_publisherID INT,
-    IN p_inStock TINYINT
-)
-BEGIN
-    -- Exit handler for any SQL exception
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK; -- Roll back the transaction on error
-        RESIGNAL; -- Re-throw the error
-    END;
-
-    START TRANSACTION;
-        INSERT INTO Books (
-            title,
-            publicationDate,
-            `isbn-10`,
-            `isbn-13`,
-            price,
-            inventoryQty,
-            publisherID,
-            inStock
-        ) VALUES (
-            p_title,
-            p_publicationDate,
-            p_isbn10,
-            p_isbn13,
-            p_price,
-            p_inventoryQty,
-            p_publisherID,
-            p_inStock
-        );
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Update Book
-DROP PROCEDURE IF EXISTS sp_updateBook;
-DELIMITER $$
-CREATE PROCEDURE sp_updateBook(
-    IN p_bookID INT,
-    IN p_title VARCHAR(255),
-    IN p_publicationDate DATE,
-    IN p_price DECIMAL(10,2),
-    IN p_inventoryQty INT,
-    IN p_publisherID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        UPDATE Books
-        SET
-            title = p_title,
-            publicationDate = p_publicationDate,
-            price = p_price,
-            inventoryQty = p_inventoryQty,
-            publisherID = p_publisherID
-        WHERE bookID = p_bookID;
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Delete a book
-DROP PROCEDURE IF EXISTS sp_deleteBook;
-DELIMITER $$
-CREATE PROCEDURE sp_deleteBook(
-    IN p_bookID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        DELETE FROM Books
-        WHERE bookID = p_bookID;
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy sp_insertBook/sp_updateBook/sp_deleteBook - unused by backend models)
 
 
 -- =================================================================
 -- Authors
 -- =================================================================
 
--- Insert an author
-DROP PROCEDURE IF EXISTS sp_insertAuthor;
-DELIMITER $$
-CREATE PROCEDURE sp_insertAuthor(
-    IN p_firstName VARCHAR(80),
-    IN p_middleName VARCHAR(80),
-    IN p_lastName VARCHAR(80)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO Authors (firstName, middleName, lastName)
-        VALUES (p_firstName, p_middleName, p_lastName);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Update an Author
-DROP PROCEDURE IF EXISTS sp_updateAuthor;
-DELIMITER $$
-CREATE PROCEDURE sp_updateAuthor(
-    IN p_authorID INT,
-    IN p_firstName VARCHAR(80),
-    IN p_middleName VARCHAR(80),
-    IN p_lastName VARCHAR(80)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        UPDATE Authors
-        SET firstName = p_firstName,
-            middleName = p_middleName,
-            lastName = p_lastName
-        WHERE authorID = p_authorID;
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Delete an Author
-DROP PROCEDURE IF EXISTS sp_deleteAuthor;
-DELIMITER $$
-CREATE PROCEDURE sp_deleteAuthor(
-    IN p_authorID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        -- First, remove associations in BookAuthors to maintain referential integrity
-        DELETE FROM BookAuthors WHERE authorID = p_authorID;
-        -- Then, delete the author
-        DELETE FROM Authors WHERE authorID = p_authorID;
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy sp_insertAuthor/sp_updateAuthor; keeping single sp_deleteAuthor defined later)
 
 
 -- =================================================================
 -- Customers
 -- =================================================================
 
--- Add a customer
-DROP PROCEDURE IF EXISTS sp_insertCustomer;
-DELIMITER $$
-CREATE PROCEDURE sp_insertCustomer(
-    IN p_firstName VARCHAR(100),
-    IN p_lastName VARCHAR(100),
-    IN p_email VARCHAR(255),
-    IN p_phoneNumber CHAR(10)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO Customers (firstName, lastName, email, phoneNumber)
-        VALUES (p_firstName, p_lastName, p_email, p_phoneNumber);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Update a customer
-DROP PROCEDURE IF EXISTS sp_updateCustomer;
-DELIMITER $$
-CREATE PROCEDURE sp_updateCustomer(
-    IN p_customerID INT,
-    IN p_firstName VARCHAR(100),
-    IN p_lastName VARCHAR(100),
-    IN p_email VARCHAR(255),
-    IN p_phoneNumber CHAR(10)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        UPDATE Customers
-        SET firstName = p_firstName,
-            lastName = p_lastName,
-            email = p_email,
-            phoneNumber = p_phoneNumber
-        WHERE customerID = p_customerID;
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy sp_insertCustomer/sp_updateCustomer - unused by backend models)
 
 -- Delete a customer
 DROP PROCEDURE IF EXISTS sp_deleteCustomer;
@@ -270,71 +60,7 @@ DELIMITER ;
 -- Orders
 -- =================================================================
 
--- Add an order
-DROP PROCEDURE IF EXISTS sp_addOrder;
-DELIMITER $$
-CREATE PROCEDURE sp_addOrder(
-    IN p_orderDate DATE,
-    IN p_orderTime TIME,
-    IN p_total DECIMAL(10,2),
-    IN p_taxRate DECIMAL(6,4),
-    IN p_customerID INT,
-    IN p_salesRateID INT,
-    IN p_bookIDs JSON,
-    IN p_quantities JSON,
-    IN p_prices JSON,
-    IN p_subtotals JSON
-)
-BEGIN
-    DECLARE lastOrderID INT;
-    DECLARE i INT DEFAULT 0;
-    DECLARE arrLength INT;
-    DECLARE current_book_id INT;
-    DECLARE current_quantity INT;
-
-    -- Exit handler for any SQL exception
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK; -- Roll back the transaction on error
-        RESIGNAL; -- Re-throw the error
-    END;
-
-    START TRANSACTION;
-
-    -- 1. Insert the main order record
-    INSERT INTO Orders(orderDate, orderTime, total, taxRate, customerID, salesRateID)
-    VALUES (p_orderDate, p_orderTime, p_total, p_taxRate, p_customerID, p_salesRateID);
-
-    SET lastOrderID = LAST_INSERT_ID();
-
-    -- Get number of items in the arrays
-    SET arrLength = JSON_LENGTH(p_bookIDs);
-
-    -- Loop through each item in cart
-    WHILE i < arrLength DO
-        SET current_book_id = JSON_UNQUOTE(JSON_EXTRACT(p_bookIDs, CONCAT('$[', i, ']')));
-        SET current_quantity = JSON_EXTRACT(p_quantities, CONCAT('$[', i, ']'));
-    
-        INSERT INTO OrderItems(orderID, bookID, quantity, individualPrice, subtotal)
-        VALUES (
-            lastOrderID,
-            current_book_id,
-            current_quantity,
-            JSON_EXTRACT(p_prices, CONCAT('$[', i, ']')),
-            JSON_EXTRACT(p_subtotals, CONCAT('$[', i, ']'))
-        );
-
-        -- Update inventory for each book
-        UPDATE Books
-        SET inventoryQty = inventoryQty - current_quantity
-        WHERE bookID = current_book_id;
-
-        SET i = i + 1;
-    END WHILE;
-
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy sp_addOrder - unused by backend models)
 
 -- Delete an order
 DROP PROCEDURE IF EXISTS sp_deleteOrder;
@@ -362,227 +88,23 @@ DELIMITER ;
 -- Junction Tables (BookAuthors, BookGenres)
 -- =================================================================
 
--- Associate author with a book
-DROP PROCEDURE IF EXISTS sp_addBookAuthorToBook;
-DELIMITER $$
-CREATE PROCEDURE sp_addBookAuthorToBook (
-    IN p_bookID INT,
-    IN p_authorID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+ -- (Removed legacy BookAuthors helpers - backend uses dynamic procedures)
 
-    START TRANSACTION;
-        INSERT INTO BookAuthors (bookID, authorID)
-        VALUES (p_bookID, p_authorID);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Remove author from a book
-DROP PROCEDURE IF EXISTS sp_deleteBookAuthorFromBook;
-DELIMITER $$
-CREATE PROCEDURE sp_deleteBookAuthorFromBook (
-    IN p_bookID INT,
-    IN p_authorID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        DELETE FROM BookAuthors
-        WHERE bookID = p_bookID
-          AND authorID = p_authorID;
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Add a genre to a book
-DROP PROCEDURE IF EXISTS sp_insertBookGenre;
-DELIMITER $$
-CREATE PROCEDURE sp_insertBookGenre (
-    IN p_bookID INT,
-    IN p_genreID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO BookGenres (bookID, genreID)
-        VALUES (p_bookID, p_genreID);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Remove a genre from a book
-DROP PROCEDURE IF EXISTS sp_deleteBookGenre;
-DELIMITER $$
-CREATE PROCEDURE sp_deleteBookGenre (
-    IN p_bookID INT,
-    IN p_genreID INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        DELETE FROM BookGenres
-        WHERE bookID = p_bookID AND genreID = p_genreID;
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy BookGenres helpers; keep ID-based delete defined later)
 
 
 -- =================================================================
 -- Other Look-up Tables (Genres, Publishers, etc.)
 -- =================================================================
 
--- Add a genre
-DROP PROCEDURE IF EXISTS sp_insertGenre;
-DELIMITER $$
-CREATE PROCEDURE sp_insertGenre (
-    IN p_genreName VARCHAR(255)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO Genres (genreName)
-        VALUES (p_genreName);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Add a publisher
-DROP PROCEDURE IF EXISTS sp_insertPublisher;
-DELIMITER $$
-CREATE PROCEDURE sp_insertPublisher (
-    IN p_publisherName VARCHAR(255)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO Publishers (publisherName)
-        VALUES (p_publisherName);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Add a SalesTaxLocation
-DROP PROCEDURE IF EXISTS sp_insertSalesRateLocation;
-DELIMITER $$
-CREATE PROCEDURE sp_insertSalesRateLocation (
-    IN p_county VARCHAR(45),
-    IN p_state VARCHAR(45),
-    IN p_taxRate DECIMAL(6,4)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO SalesRateLocations (county, state, taxRate)
-        VALUES (p_county, p_state, p_taxRate);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Add a store location
-DROP PROCEDURE IF EXISTS sp_insertSLOC;
-DELIMITER $$
-CREATE PROCEDURE sp_insertSLOC (
-    IN p_slocName VARCHAR(45)
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO SLOCS (slocName)
-        VALUES (p_slocName);
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy insert helpers for Genres/Publishers/SalesRateLocations/SLOCS)
 
 
 -- =================================================================
 -- Book Locations
 -- =================================================================
 
--- Add a book to a specific store and update quantity
-DROP PROCEDURE IF EXISTS sp_insertBookLocation;
-DELIMITER $$
-CREATE PROCEDURE sp_insertBookLocation (
-    IN p_bookID INT,
-    IN p_slocID INT,
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        INSERT INTO BookLocations (bookID, slocID, quantity)
-        VALUES (p_bookID, p_slocID, p_quantity);
-    COMMIT;
-END $$
-DELIMITER ;
-
--- Update book quantity at a location
-DROP PROCEDURE IF EXISTS sp_updateBookLocationQuantity;
-DELIMITER $$
-CREATE PROCEDURE sp_updateBookLocationQuantity (
-    IN p_bookID INT,
-    IN p_slocID INT,
-    IN p_quantity INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-        UPDATE BookLocations
-        SET quantity = p_quantity
-        WHERE bookID = p_bookID AND slocID = p_slocID;
-    COMMIT;
-END $$
-DELIMITER ;
+ -- (Removed legacy BookLocations helpers - backend uses dynamic procedures)
 
 -- Authors Procedures
 
@@ -837,6 +359,36 @@ INNER JOIN Books b ON bl.bookID = b.bookID
 INNER JOIN SLOCS s ON bl.slocID = s.slocID
 ORDER BY b.title, s.slocName;
 
+ -- Views for books with publisher and inventory info (used by BooksModel.js)
+ DROP VIEW IF EXISTS v_book_with_publisher;
+ CREATE VIEW v_book_with_publisher AS
+ SELECT 
+   b.*, p.publisherName
+ FROM Books b
+ LEFT JOIN Publishers p ON b.publisherID = p.publisherID;
+
+ DROP VIEW IF EXISTS v_books_with_publisher;
+ CREATE VIEW v_books_with_publisher AS
+ SELECT 
+   b.*, p.publisherName
+ FROM Books b
+ LEFT JOIN Publishers p ON b.publisherID = p.publisherID;
+
+ DROP VIEW IF EXISTS v_books;
+ CREATE VIEW v_books AS
+ SELECT 
+   b.*, p.publisherName
+ FROM Books b
+ LEFT JOIN Publishers p ON b.publisherID = p.publisherID;
+
+ DROP VIEW IF EXISTS v_books_in_stock;
+ CREATE VIEW v_books_in_stock AS
+ SELECT 
+   b.*, p.publisherName
+ FROM Books b
+ LEFT JOIN Publishers p ON b.publisherID = p.publisherID
+ WHERE b.inStock = 1 AND b.inventoryQty > 0;
+
 
 -- Dynamic create procedure for BookAuthors table
 DROP PROCEDURE IF EXISTS sp_dynamic_create_book_authors;
@@ -873,6 +425,244 @@ BEGIN
         'authorID', author_id_val,
         'bookID', book_id_val
     ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for BookAuthors table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_book_authors;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_book_authors(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE author_id_val INT;
+    DECLARE book_id_val INT;
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET author_id_val = JSON_EXTRACT(p_data, '$.authorID');
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        
+        -- Update
+        UPDATE BookAuthors
+        SET authorID = author_id_val,
+            bookID = book_id_val
+        WHERE bookAuthorID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'authorID', author_id_val,
+            'bookID', book_id_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- Delete BookAuthor relationship
+DROP PROCEDURE IF EXISTS sp_deleteBookAuthor;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteBookAuthor(
+    IN p_bookAuthorID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM BookAuthors WHERE bookAuthorID = p_bookAuthorID;
+    COMMIT;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- BookGenres Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for BookGenres table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_book_genres;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_book_genres(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE genre_id_val INT;
+    DECLARE book_id_val INT;
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET genre_id_val = JSON_EXTRACT(p_data, '$.genreID');
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        
+        -- Insert
+        INSERT INTO BookGenres (genreID, bookID)
+        VALUES (genre_id_val, book_id_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'genreID', genre_id_val,
+        'bookID', book_id_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Delete BookGenre relationship
+DROP PROCEDURE IF EXISTS sp_deleteBookGenre;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteBookGenre(
+    IN p_bookGenreID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM BookGenres WHERE bookGenreID = p_bookGenreID;
+    COMMIT;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- BookLocations Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for BookLocations table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_book_locations;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_book_locations(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE book_id_val INT;
+    DECLARE sloc_id_val INT;
+    DECLARE quantity_val INT;
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        SET sloc_id_val = JSON_EXTRACT(p_data, '$.slocID');
+        SET quantity_val = JSON_EXTRACT(p_data, '$.quantity');
+        
+        -- Insert
+        INSERT INTO BookLocations (bookID, slocID, quantity)
+        VALUES (book_id_val, sloc_id_val, quantity_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'bookID', book_id_val,
+        'slocID', sloc_id_val,
+        'quantity', quantity_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for BookLocations table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_book_locations;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_book_locations(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE book_id_val INT;
+    DECLARE sloc_id_val INT;
+    DECLARE quantity_val INT;
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        SET sloc_id_val = JSON_EXTRACT(p_data, '$.slocID');
+        SET quantity_val = JSON_EXTRACT(p_data, '$.quantity');
+        
+        -- Update
+        UPDATE BookLocations
+        SET bookID = book_id_val,
+            slocID = sloc_id_val,
+            quantity = quantity_val
+        WHERE bookLocationID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'bookID', book_id_val,
+            'slocID', sloc_id_val,
+            'quantity', quantity_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- Delete BookLocation relationship
+DROP PROCEDURE IF EXISTS sp_deleteBookLocation;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteBookLocation(
+    IN p_bookLocationID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM BookLocations WHERE bookLocationID = p_bookLocationID;
+    COMMIT;
 END $$
 DELIMITER ;
 
@@ -1515,5 +1305,1078 @@ BEGIN
     WHERE bookID = OLD.bookID;
 END$$
 
+DELIMITER ;
+
+-- =================================================================
+-- Enhanced Dynamic Stored Procedures (Updated August 13, 2025)
+-- =================================================================
+-- These procedures include improved validation and error handling based on user feedback
+-- 
+-- CITATION: Based on user request to fix "Failed to save book" errors and improve validation feedback.
+-- User reported: "When creating or updating a book, the price always results in 0.00" and 
+-- "Failed to save book but does not tell me if I need to enter additional info or if this is a server error"
+-- 
+-- ADDITIONAL USER REQUESTS AND REFINEMENTS:
+-- - User: "Publication date selects one day prior to the date I click on in the date pop up"
+-- - User: "Author names showing with nulls as the middle and last names"
+-- 
+-- REFINEMENTS IMPLEMENTED:
+-- - Fixed publication date off-by-one issue caused by timezone handling in date-fns
+-- - Enhanced stored procedure validation with specific error messages using SIGNAL SQLSTATE
+-- - Improved author name handling to convert empty strings to NULL for optional fields
+-- - Added comprehensive validation for required fields (title, publicationDate, price)
+-- - Enhanced error categorization for better user feedback
+-- 
+-- AI TOOL USAGE: Cursor AI was used to implement the timezone-safe date handling, enhanced 
+--                validation logic, and improved error message display, addressing all user-reported issues.
+
+-- =================================================================
+-- Enhanced Dynamic Create Procedure for Books
+-- =================================================================
+DROP PROCEDURE IF EXISTS sp_dynamic_create_books;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_books(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE title_val VARCHAR(255);
+    DECLARE pub_date_val DATE;
+    DECLARE isbn10_val CHAR(13);
+    DECLARE isbn13_val CHAR(17);
+    DECLARE price_val DECIMAL(10,2);
+    DECLARE inventory_val INT;
+    DECLARE publisher_val INT;
+    DECLARE instock_val TINYINT;
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET title_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.title'));
+        SET pub_date_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.publicationDate'));
+        SET isbn10_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$."isbn-10"'));
+        SET isbn13_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$."isbn-13"'));
+        
+        -- Validate required fields
+        IF title_val IS NULL OR title_val = '' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Title is required and cannot be empty';
+        END IF;
+        
+        IF pub_date_val IS NULL OR pub_date_val = '' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Publication date is required and cannot be empty';
+        END IF;
+        
+        -- Handle null values properly
+        IF isbn10_val = 'null' OR isbn10_val = 'NULL' THEN SET isbn10_val = NULL; END IF;
+        IF isbn13_val = 'null' OR isbn13_val = 'NULL' THEN SET isbn13_val = NULL; END IF;
+        -- Convert price to DECIMAL properly
+        SET price_val = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.price')) AS DECIMAL(10,2));
+        
+        -- Validate price
+        IF price_val IS NULL OR price_val <= 0 THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Price must be a positive number';
+        END IF;
+        
+        SET inventory_val = COALESCE(JSON_EXTRACT(p_data, '$.inventoryQty'), 0);
+        SET publisher_val = JSON_EXTRACT(p_data, '$.publisherID');
+        -- Handle inStock with default value if not provided
+        SET instock_val = COALESCE(JSON_EXTRACT(p_data, '$.inStock'), 1);
+        
+        -- Insert with dynamic column handling
+        INSERT INTO Books (
+            title,
+            publicationDate,
+            `isbn-10`,
+            `isbn-13`,
+            price,
+            inventoryQty,
+            publisherID,
+            inStock
+        ) VALUES (
+            title_val,
+            pub_date_val,
+            isbn10_val,
+            isbn13_val,
+            price_val,
+            inventory_val,
+            publisher_val,
+            instock_val
+        );
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'title', title_val,
+        'publicationDate', pub_date_val,
+        'isbn-10', isbn10_val,
+        'isbn-13', isbn13_val,
+        'price', price_val,
+        'inventoryQty', inventory_val,
+        'publisherID', publisher_val,
+        'inStock', instock_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Enhanced Dynamic Update Procedure for Books
+-- =================================================================
+DROP PROCEDURE IF EXISTS sp_dynamic_update_books;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_books(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE title_val VARCHAR(255);
+    DECLARE pub_date_val DATE;
+    DECLARE price_val DECIMAL(10,2);
+    DECLARE inventory_val INT;
+    DECLARE publisher_val INT;
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET title_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.title'));
+        SET pub_date_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.publicationDate'));
+        -- Convert price to DECIMAL properly
+        SET price_val = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.price')) AS DECIMAL(10,2));
+        
+        -- Validate required fields
+        IF title_val IS NULL OR title_val = '' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Title is required and cannot be empty';
+        END IF;
+        
+        IF pub_date_val IS NULL OR pub_date_val = '' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Publication date is required and cannot be empty';
+        END IF;
+        
+        -- Validate price
+        IF price_val IS NULL OR price_val <= 0 THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Price must be a positive number';
+        END IF;
+        
+        SET inventory_val = JSON_EXTRACT(p_data, '$.inventoryQty');
+        SET publisher_val = JSON_EXTRACT(p_data, '$.publisherID');
+        
+        -- Update with dynamic column handling
+        UPDATE Books
+        SET
+            title = title_val,
+            publicationDate = pub_date_val,
+            price = price_val,
+            inventoryQty = inventory_val,
+            publisherID = publisher_val
+        WHERE bookID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'title', title_val,
+            'publicationDate', pub_date_val,
+            'price', price_val,
+            'inventoryQty', inventory_val,
+            'publisherID', publisher_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Enhanced Dynamic Create Procedure for Authors
+-- =================================================================
+DROP PROCEDURE IF EXISTS sp_dynamic_create_authors;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_authors(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE first_name_val VARCHAR(80);
+    DECLARE middle_name_val VARCHAR(80);
+    DECLARE last_name_val VARCHAR(80);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
+        SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
+        SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        
+        -- Convert empty strings to NULL for optional fields
+        IF middle_name_val = '' OR middle_name_val = 'null' THEN SET middle_name_val = NULL; END IF;
+        IF last_name_val = '' OR last_name_val = 'null' THEN SET last_name_val = NULL; END IF;
+        
+        -- Insert
+        INSERT INTO Authors (firstName, middleName, lastName)
+        VALUES (first_name_val, middle_name_val, last_name_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'firstName', first_name_val,
+        'middleName', middle_name_val,
+        'lastName', last_name_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Enhanced Dynamic Update Procedure for Authors
+-- =================================================================
+DROP PROCEDURE IF EXISTS sp_dynamic_update_authors;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_authors(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE first_name_val VARCHAR(80);
+    DECLARE middle_name_val VARCHAR(80);
+    DECLARE last_name_val VARCHAR(80);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
+        SET middle_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.middleName'));
+        SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        
+        -- Convert empty strings to NULL for optional fields
+        IF middle_name_val = '' OR middle_name_val = 'null' THEN SET middle_name_val = NULL; END IF;
+        IF last_name_val = '' OR last_name_val = 'null' THEN SET last_name_val = NULL; END IF;
+        
+        -- Update
+        UPDATE Authors
+        SET firstName = first_name_val,
+            middleName = middle_name_val,
+            lastName = last_name_val
+        WHERE authorID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'firstName', first_name_val,
+            'middleName', middle_name_val,
+            'lastName', last_name_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Missing Stored Procedures for Other Models
+-- =================================================================
+-- These procedures are referenced in the models but were missing from PL.sql
+-- 
+-- CITATION: Added August 13, 2025 to ensure all model-referenced stored procedures exist
+-- 
+-- MISSING PROCEDURES IDENTIFIED:
+-- - sp_dynamic_create_customers (referenced in CustomersModel.js)
+-- - sp_dynamic_update_customers (referenced in CustomersModel.js)
+-- - sp_dynamic_create_orders (referenced in OrdersModel.js)
+-- - sp_dynamic_update_orders (referenced in OrdersModel.js)
+-- - sp_dynamic_create_order_items (referenced in OrderItemsModel.js)
+-- - sp_dynamic_update_order_items (referenced in OrderItemsModel.js)
+-- - sp_dynamic_create_genres (referenced in GenresModel.js)
+-- - sp_dynamic_update_genres (referenced in GenresModel.js)
+-- - sp_dynamic_create_publishers (referenced in PublishersModel.js)
+-- - sp_dynamic_update_publishers (referenced in PublishersModel.js)
+-- - sp_dynamic_create_locations (referenced in LocationsModel.js)
+-- - sp_dynamic_update_locations (referenced in LocationsModel.js)
+-- - sp_dynamic_create_sales_rate_locations (referenced in SalesRateLocationsModel.js)
+-- - sp_dynamic_update_sales_rate_locations (referenced in SalesRateLocationsModel.js)
+-- 
+-- AI TOOL USAGE: Cursor AI was used to identify missing procedures and implement them
+--                based on the existing patterns in the models.
+
+-- =================================================================
+-- Customers Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for Customers table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_customers;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_customers(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE first_name_val VARCHAR(100);
+    DECLARE last_name_val VARCHAR(100);
+    DECLARE email_val VARCHAR(255);
+    DECLARE phone_val CHAR(10);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
+        SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        SET email_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.email'));
+        SET phone_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.phoneNumber'));
+        
+        -- Insert
+        INSERT INTO Customers (firstName, lastName, email, phoneNumber)
+        VALUES (first_name_val, last_name_val, email_val, phone_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'firstName', first_name_val,
+        'lastName', last_name_val,
+        'email', email_val,
+        'phoneNumber', phone_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for Customers table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_customers;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_customers(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE first_name_val VARCHAR(100);
+    DECLARE last_name_val VARCHAR(100);
+    DECLARE email_val VARCHAR(255);
+    DECLARE phone_val CHAR(10);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET first_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.firstName'));
+        SET last_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.lastName'));
+        SET email_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.email'));
+        SET phone_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.phoneNumber'));
+        
+        -- Update
+        UPDATE Customers
+        SET firstName = first_name_val,
+            lastName = last_name_val,
+            email = email_val,
+            phoneNumber = phone_val
+        WHERE customerID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'firstName', first_name_val,
+            'lastName', last_name_val,
+            'email', email_val,
+            'phoneNumber', phone_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Orders Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for Orders table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_orders;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_orders(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE order_date_val DATE;
+    DECLARE order_time_val TIME;
+    DECLARE total_val DECIMAL(10,2);
+    DECLARE tax_rate_val DECIMAL(6,4);
+    DECLARE customer_id_val INT;
+    DECLARE sales_rate_id_val INT;
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET order_date_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.orderDate'));
+        SET order_time_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.orderTime'));
+        SET total_val = JSON_EXTRACT(p_data, '$.total');
+        SET tax_rate_val = JSON_EXTRACT(p_data, '$.taxRate');
+        SET customer_id_val = JSON_EXTRACT(p_data, '$.customerID');
+        SET sales_rate_id_val = JSON_EXTRACT(p_data, '$.salesRateID');
+        
+        -- Insert
+        INSERT INTO Orders (orderDate, orderTime, total, taxRate, customerID, salesRateID)
+        VALUES (order_date_val, order_time_val, total_val, tax_rate_val, customer_id_val, sales_rate_id_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'orderDate', order_date_val,
+        'orderTime', order_time_val,
+        'total', total_val,
+        'taxRate', tax_rate_val,
+        'customerID', customer_id_val,
+        'salesRateID', sales_rate_id_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for Orders table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_orders;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_orders(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE order_date_val DATE;
+    DECLARE order_time_val TIME;
+    DECLARE total_val DECIMAL(10,2);
+    DECLARE tax_rate_val DECIMAL(6,4);
+    DECLARE customer_id_val INT;
+    DECLARE sales_rate_id_val INT;
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET order_date_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.orderDate'));
+        SET order_time_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.orderTime'));
+        SET total_val = JSON_EXTRACT(p_data, '$.total');
+        SET tax_rate_val = JSON_EXTRACT(p_data, '$.taxRate');
+        SET customer_id_val = JSON_EXTRACT(p_data, '$.customerID');
+        SET sales_rate_id_val = JSON_EXTRACT(p_data, '$.salesRateID');
+        
+        -- Update
+        UPDATE Orders
+        SET orderDate = order_date_val,
+            orderTime = order_time_val,
+            total = total_val,
+            taxRate = tax_rate_val,
+            customerID = customer_id_val,
+            salesRateID = sales_rate_id_val
+        WHERE orderID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'orderDate', order_date_val,
+            'orderTime', order_time_val,
+            'total', total_val,
+            'taxRate', tax_rate_val,
+            'customerID', customer_id_val,
+            'salesRateID', sales_rate_id_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- OrderItems Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for OrderItems table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_order_items;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_order_items(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE order_id_val INT;
+    DECLARE book_id_val INT;
+    DECLARE quantity_val INT;
+    DECLARE individual_price_val DECIMAL(10,2);
+    DECLARE subtotal_val DECIMAL(10,2);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET order_id_val = JSON_EXTRACT(p_data, '$.orderID');
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        SET quantity_val = JSON_EXTRACT(p_data, '$.quantity');
+        SET individual_price_val = JSON_EXTRACT(p_data, '$.individualPrice');
+        SET subtotal_val = JSON_EXTRACT(p_data, '$.subtotal');
+        
+        -- Insert
+        INSERT INTO OrderItems (orderID, bookID, quantity, individualPrice, subtotal)
+        VALUES (order_id_val, book_id_val, quantity_val, individual_price_val, subtotal_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'orderID', order_id_val,
+        'bookID', book_id_val,
+        'quantity', quantity_val,
+        'individualPrice', individual_price_val,
+        'subtotal', subtotal_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for OrderItems table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_order_items;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_order_items(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE order_id_val INT;
+    DECLARE book_id_val INT;
+    DECLARE quantity_val INT;
+    DECLARE individual_price_val DECIMAL(10,2);
+    DECLARE subtotal_val DECIMAL(10,2);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET order_id_val = JSON_EXTRACT(p_data, '$.orderID');
+        SET book_id_val = JSON_EXTRACT(p_data, '$.bookID');
+        SET quantity_val = JSON_EXTRACT(p_data, '$.quantity');
+        SET individual_price_val = JSON_EXTRACT(p_data, '$.individualPrice');
+        SET subtotal_val = JSON_EXTRACT(p_data, '$.subtotal');
+        
+        -- Update
+        UPDATE OrderItems
+        SET orderID = order_id_val,
+            bookID = book_id_val,
+            quantity = quantity_val,
+            individualPrice = individual_price_val,
+            subtotal = subtotal_val
+        WHERE orderItemID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'orderID', order_id_val,
+            'bookID', book_id_val,
+            'quantity', quantity_val,
+            'individualPrice', individual_price_val,
+            'subtotal', subtotal_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Genres Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for Genres table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_genres;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_genres(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE genre_name_val VARCHAR(255);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET genre_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.genreName'));
+        
+        -- Insert
+        INSERT INTO Genres (genreName)
+        VALUES (genre_name_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'genreName', genre_name_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for Genres table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_genres;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_genres(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE genre_name_val VARCHAR(255);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET genre_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.genreName'));
+        
+        -- Update
+        UPDATE Genres
+        SET genreName = genre_name_val
+        WHERE genreID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'genreName', genre_name_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Publishers Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for Publishers table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_publishers;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_publishers(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE publisher_name_val VARCHAR(255);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET publisher_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.publisherName'));
+        
+        -- Insert
+        INSERT INTO Publishers (publisherName)
+        VALUES (publisher_name_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'publisherName', publisher_name_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for Publishers table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_publishers;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_publishers(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE publisher_name_val VARCHAR(255);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET publisher_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.publisherName'));
+        
+        -- Update
+        UPDATE Publishers
+        SET publisherName = publisher_name_val
+        WHERE publisherID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'publisherName', publisher_name_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Locations Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for Locations table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_locations;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_locations(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE sloc_name_val VARCHAR(45);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET sloc_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.slocName'));
+        
+        -- Insert
+        INSERT INTO SLOCS (slocName)
+        VALUES (sloc_name_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'slocName', sloc_name_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for Locations table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_locations;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_locations(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE sloc_name_val VARCHAR(45);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET sloc_name_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.slocName'));
+        
+        -- Update
+        UPDATE SLOCS
+        SET slocName = sloc_name_val
+        WHERE slocID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'slocName', sloc_name_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- SalesRateLocations Missing Procedures
+-- =================================================================
+
+-- Dynamic create procedure for SalesRateLocations table
+DROP PROCEDURE IF EXISTS sp_dynamic_create_sales_rate_locations;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_create_sales_rate_locations(
+    IN p_data JSON
+)
+BEGIN
+    DECLARE county_val VARCHAR(45);
+    DECLARE state_val VARCHAR(45);
+    DECLARE tax_rate_val DECIMAL(6,4);
+    DECLARE insert_id INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET county_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.county'));
+        SET state_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.state'));
+        SET tax_rate_val = JSON_EXTRACT(p_data, '$.taxRate');
+        
+        -- Insert
+        INSERT INTO SalesRateLocations (county, state, taxRate)
+        VALUES (county_val, state_val, tax_rate_val);
+        
+        SET insert_id = LAST_INSERT_ID();
+    COMMIT;
+    
+    -- Return the result as JSON
+    SELECT JSON_OBJECT(
+        'id', insert_id,
+        'county', county_val,
+        'state', state_val,
+        'taxRate', tax_rate_val
+    ) as result;
+END $$
+DELIMITER ;
+
+-- Dynamic update procedure for SalesRateLocations table
+DROP PROCEDURE IF EXISTS sp_dynamic_update_sales_rate_locations;
+DELIMITER $$
+CREATE PROCEDURE sp_dynamic_update_sales_rate_locations(
+    IN p_id INT,
+    IN p_data JSON
+)
+BEGIN
+    DECLARE county_val VARCHAR(45);
+    DECLARE state_val VARCHAR(45);
+    DECLARE tax_rate_val DECIMAL(6,4);
+    DECLARE affected_rows INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Extract values from JSON
+        SET county_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.county'));
+        SET state_val = JSON_UNQUOTE(JSON_EXTRACT(p_data, '$.state'));
+        SET tax_rate_val = JSON_EXTRACT(p_data, '$.taxRate');
+        
+        -- Update
+        UPDATE SalesRateLocations
+        SET county = county_val,
+            state = state_val,
+            taxRate = tax_rate_val
+        WHERE salesRateID = p_id;
+        
+        SET affected_rows = ROW_COUNT();
+    COMMIT;
+    
+    -- Return the result as JSON
+    IF affected_rows > 0 THEN
+        SELECT JSON_OBJECT(
+            'id', p_id,
+            'county', county_val,
+            'state', state_val,
+            'taxRate', tax_rate_val
+        ) as result;
+    ELSE
+        SELECT NULL as result;
+    END IF;
+END $$
+DELIMITER ;
+
+-- =================================================================
+-- Missing Delete Procedures (Referenced in Models)
+-- =================================================================
+-- These delete procedures are referenced in the models but were missing from PL.sql
+-- 
+-- CITATION: Added August 13, 2025 to ensure all model-referenced delete procedures exist
+-- 
+-- MISSING DELETE PROCEDURES IDENTIFIED:
+-- - sp_deleteGenre (referenced in GenresModel.js)
+-- - sp_deletePublisher (referenced in PublishersModel.js)
+-- - sp_deleteSLOC (referenced in LocationsModel.js)
+-- - sp_deleteSalesRateLocation (referenced in SalesRateLocationsModel.js)
+-- 
+-- AI TOOL USAGE: Cursor AI was used to identify missing delete procedures and implement them
+--                based on the existing patterns in the models.
+
+-- Delete Genre
+DROP PROCEDURE IF EXISTS sp_deleteGenre;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteGenre(
+    IN p_genreID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM Genres WHERE genreID = p_genreID;
+    COMMIT;
+END $$
+DELIMITER ;
+
+-- Delete Publisher
+DROP PROCEDURE IF EXISTS sp_deletePublisher;
+DELIMITER $$
+CREATE PROCEDURE sp_deletePublisher(
+    IN p_publisherID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM Publishers WHERE publisherID = p_publisherID;
+    COMMIT;
+END $$
+DELIMITER ;
+
+-- Delete SLOC (Location)
+DROP PROCEDURE IF EXISTS sp_deleteSLOC;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteSLOC(
+    IN p_slocID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM SLOCS WHERE slocID = p_slocID;
+    COMMIT;
+END $$
+DELIMITER ;
+
+-- Delete SalesRateLocation
+DROP PROCEDURE IF EXISTS sp_deleteSalesRateLocation;
+DELIMITER $$
+CREATE PROCEDURE sp_deleteSalesRateLocation(
+    IN p_salesRateID INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        DELETE FROM SalesRateLocations WHERE salesRateID = p_salesRateID;
+    COMMIT;
+END $$
 DELIMITER ;
 

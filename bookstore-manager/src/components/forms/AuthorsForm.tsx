@@ -7,6 +7,14 @@
  * @source_url N/A - Based on a prior personal project for CS 361.
  *
  * @ai_tool_usage The form components were scaffolded using Cursor, an AI code editor, based on the established architecture and the specific data model for each page. The generated code was then refined and customized.
+ *
+ * @recent_fixes August 13, 2025 - Fixed author names showing as "null" on the frontend by properly handling empty strings
+ *                for optional name fields. Modified form submission to convert empty strings to null before sending to backend.
+ *                Enhanced error handling with toast notifications and specific error messages. These fixes ensure proper
+ *                display of author names and better user feedback for errors.
+ *
+ * @ai_tool_usage_recent Cursor AI was used to implement proper null handling for optional author names and enhanced
+ *                       error message display, addressing user-reported issues with author name display and error feedback.
  */
 
 "use client";
