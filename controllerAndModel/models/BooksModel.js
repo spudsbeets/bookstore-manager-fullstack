@@ -16,29 +16,10 @@ class BooksModel extends BaseModel {
       super("Books", "bookID");
    }
 
-   // Override findAll to include publisher and relationships
+   // Override findAll to use the view
    async findAll() {
       try {
-         const [rows] = await pool.query(`
-                SELECT
-                    b.bookID,
-                    b.title,
-                    b.publicationDate,
-                    b.\`isbn-10\`,
-                    b.\`isbn-13\`,
-                    b.price,
-                    b.inventoryQty,
-                    p.publisherName AS publisher,
-                    GROUP_CONCAT(DISTINCT a.fullName SEPARATOR ', ') AS authors,
-                    GROUP_CONCAT(DISTINCT g.genreName SEPARATOR ', ') AS genres
-                FROM Books b
-                LEFT JOIN Publishers p ON b.publisherID = p.publisherID
-                LEFT JOIN BookAuthors ba ON b.bookID = ba.bookID
-                LEFT JOIN Authors a ON ba.authorID = a.authorID
-                LEFT JOIN BookGenres bg ON b.bookID = bg.bookID
-                LEFT JOIN Genres g ON bg.genreID = g.genreID
-                GROUP BY b.bookID
-            `);
+         const [rows] = await pool.query(`SELECT * FROM v_books`);
          return rows;
       } catch (error) {
          console.error("Error fetching books:", error);
@@ -50,12 +31,7 @@ class BooksModel extends BaseModel {
    async findById(id) {
       try {
          const [rows] = await pool.query(
-            `
-                SELECT b.*, p.publisherName 
-                FROM Books b 
-                LEFT JOIN Publishers p ON b.publisherID = p.publisherID
-                WHERE b.bookID = ?
-            `,
+            "SELECT * FROM v_book_with_publisher WHERE bookID = ?",
             [id]
          );
          return rows.length > 0 ? rows[0] : null;
@@ -69,12 +45,7 @@ class BooksModel extends BaseModel {
    async findByTitle(title) {
       try {
          const [rows] = await pool.query(
-            `
-                SELECT b.*, p.publisherName 
-                FROM Books b 
-                LEFT JOIN Publishers p ON b.publisherID = p.publisherID
-                WHERE b.title LIKE ?
-            `,
+            "SELECT * FROM v_books_with_publisher WHERE title LIKE ?",
             [`%${title}%`]
          );
          return rows;
@@ -87,12 +58,7 @@ class BooksModel extends BaseModel {
    async findByPublisher(publisherId) {
       try {
          const [rows] = await pool.query(
-            `
-                SELECT b.*, p.publisherName 
-                FROM Books b 
-                LEFT JOIN Publishers p ON b.publisherID = p.publisherID
-                WHERE b.publisherID = ?
-            `,
+            "SELECT * FROM v_books_with_publisher WHERE publisherID = ?",
             [publisherId]
          );
          return rows;
@@ -104,12 +70,7 @@ class BooksModel extends BaseModel {
 
    async findInStock() {
       try {
-         const [rows] = await pool.query(`
-                SELECT b.*, p.publisherName 
-                FROM Books b 
-                LEFT JOIN Publishers p ON b.publisherID = p.publisherID
-                WHERE b.inStock = 1
-            `);
+         const [rows] = await pool.query("SELECT * FROM v_books_in_stock");
          return rows;
       } catch (error) {
          console.error("Error finding books in stock:", error);
@@ -117,60 +78,43 @@ class BooksModel extends BaseModel {
       }
    }
 
-   // Override create method to handle column names with hyphens
+   // Override create method to use stored procedure
    async create(data) {
       try {
-         const columns = Object.keys(data)
-            .map((col) => {
-               // Wrap column names with hyphens in backticks
-               if (col.includes("-")) {
-                  return `\`${col}\``;
-               }
-               return col;
-            })
-            .join(", ");
+         // Call the specific stored procedure for Books
+         const [result] = await pool.query("CALL sp_dynamic_create_books(?)", [
+            JSON.stringify(data),
+         ]);
 
-         const placeholders = Object.keys(data)
-            .map(() => "?")
-            .join(", ");
-         const values = Object.values(data);
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
 
-         const [result] = await pool.query(
-            `INSERT INTO ${this.tableName} (${columns}) VALUES (${placeholders})`,
-            values
-         );
-
-         return { id: result.insertId, ...data };
+         // Return the complete data from the stored procedure
+         return parsedResult;
       } catch (error) {
          console.error(`Error creating ${this.tableName}:`, error);
          throw error;
       }
    }
 
-   // Override update method to handle column names with hyphens
+   // Override update method to use stored procedure
    async update(id, data) {
       try {
-         const setClause = Object.keys(data)
-            .map((key) => {
-               // Wrap column names with hyphens in backticks
-               if (key.includes("-")) {
-                  return `\`${key}\` = ?`;
-               }
-               return `${key} = ?`;
-            })
-            .join(", ");
-         const values = [...Object.values(data), id];
-
+         // Call the specific stored procedure for Books
          const [result] = await pool.query(
-            `UPDATE ${this.tableName} SET ${setClause} WHERE ${this.idColumn} = ?`,
-            values
+            "CALL sp_dynamic_update_books(?, ?)",
+            [id, JSON.stringify(data)]
          );
 
-         if (result.affectedRows === 0) {
-            return null;
-         }
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
 
-         return { id, ...data };
+         if (jsonResult) {
+            const parsedResult = JSON.parse(jsonResult);
+            return { id, ...data };
+         }
+         return null;
       } catch (error) {
          console.error(`Error updating ${this.tableName}:`, error);
          throw error;

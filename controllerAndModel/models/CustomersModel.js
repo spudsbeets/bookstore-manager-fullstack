@@ -62,6 +62,61 @@ class CustomersModel extends BaseModel {
          throw error;
       }
    }
+
+   // Override create method to use stored procedure
+   async create(data) {
+      try {
+         // Call the specific stored procedure for Customers
+         const [result] = await pool.query(
+            "CALL sp_dynamic_create_customers(?)",
+            [JSON.stringify(data)]
+         );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
+
+         // Return the complete data from the stored procedure
+         return parsedResult;
+      } catch (error) {
+         console.error(`Error creating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
+
+   // Override update method to use stored procedure
+   async update(id, data) {
+      try {
+         // Call the specific stored procedure for Customers
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_customers(?, ?)",
+            [id, JSON.stringify(data)]
+         );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+
+         if (jsonResult) {
+            const parsedResult = JSON.parse(jsonResult);
+            return { id, ...data };
+         }
+         return null;
+      } catch (error) {
+         console.error(`Error updating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
+
+   // Override deleteById method to use stored procedure
+   async deleteById(id) {
+      try {
+         await pool.query("CALL sp_deleteCustomer(?)", [id]);
+         return { success: true, message: "Customer deleted successfully" };
+      } catch (error) {
+         console.error("Error deleting customer:", error);
+         throw error;
+      }
+   }
 }
 
 export default new CustomersModel();

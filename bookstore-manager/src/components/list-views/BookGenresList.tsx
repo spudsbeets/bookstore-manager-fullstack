@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
    Table,
    TableBody,
@@ -84,7 +85,8 @@ export function BookGenresList({
             toast.error("Failed to load book genres", {
                description:
                   "There was an error loading the book genres. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -119,7 +121,8 @@ export function BookGenresList({
          toast.error("Failed to delete book genre relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);
@@ -193,7 +196,12 @@ export function BookGenresList({
             <CardContent>
                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
+                     <Label htmlFor="book-genres-search" className="sr-only">
+                        Search book genres
+                     </Label>
                      <Input
+                        id="book-genres-search"
+                        name="book-genres-search"
                         placeholder="Search book genres..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

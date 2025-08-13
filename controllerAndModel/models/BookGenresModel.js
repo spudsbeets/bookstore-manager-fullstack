@@ -36,11 +36,15 @@ class BookGenresModel extends BaseModel {
             );
          }
 
-         const query = `
-            INSERT INTO BookGenres (genreID, bookID) VALUES (?, ?);
-         `;
+         // Call the specific stored procedure for BookGenres
+         const [result] = await pool.query(
+            "CALL sp_dynamic_create_book_genres(?)",
+            [JSON.stringify({ genreID, bookID })]
+         );
 
-         const [result] = await pool.query(query, [genreID, bookID]);
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
 
          // Return the created relationship with joined data
          const [newResult] = await pool.query(
@@ -49,7 +53,7 @@ class BookGenresModel extends BaseModel {
              INNER JOIN Books b ON bg.bookID = b.bookID
              INNER JOIN Genres g ON bg.genreID = g.genreID
              WHERE bg.bookGenreID = ?`,
-            [result.insertId]
+            [parsedResult.id]
          );
 
          return newResult[0];
@@ -63,11 +67,18 @@ class BookGenresModel extends BaseModel {
       try {
          const { genreID, bookID } = data;
 
-         const query = `
-            UPDATE BookGenres SET genreID = ?, bookID = ? WHERE bookGenreID = ?;
-         `;
+         // Call the specific stored procedure for BookGenres
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_book_genres(?, ?)",
+            [id, JSON.stringify({ genreID, bookID })]
+         );
 
-         await pool.query(query, [genreID, bookID, id]);
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+
+         if (!jsonResult) {
+            return null;
+         }
 
          // Return the updated relationship with joined data
          const [updatedResult] = await pool.query(
@@ -86,15 +97,53 @@ class BookGenresModel extends BaseModel {
       }
    }
 
+   async updateForBook(bookId, genreIds) {
+      try {
+         // Get current genre relationships for this book
+         const [currentGenres] = await pool.query(
+            "SELECT genreID FROM BookGenres WHERE bookID = ?",
+            [bookId]
+         );
+         const currentGenreIds = currentGenres.map((g) => g.genreID);
+
+         // Find genres to add (in new list but not in current)
+         const genresToAdd = genreIds.filter(
+            (id) => !currentGenreIds.includes(id)
+         );
+
+         // Find genres to remove (in current but not in new list)
+         const genresToRemove = currentGenreIds.filter(
+            (id) => !genreIds.includes(id)
+         );
+
+         // Remove genres that are no longer associated
+         if (genresToRemove.length > 0) {
+            await pool.query(
+               "DELETE FROM BookGenres WHERE bookID = ? AND genreID IN (?)",
+               [bookId, genresToRemove]
+            );
+         }
+
+         // Add new genre relationships
+         if (genresToAdd.length > 0) {
+            const values = genresToAdd.map((genreId) => [bookId, genreId]);
+            await pool.query(
+               "INSERT INTO BookGenres (bookID, genreID) VALUES ?",
+               [values]
+            );
+         }
+
+         return { message: "Book genres updated successfully" };
+      } catch (error) {
+         console.error("Error updating book genres:", error);
+         throw error;
+      }
+   }
+
    async deleteById(id) {
       try {
-         const query = `
-            DELETE FROM BookGenres WHERE bookGenreID = ?;
-         `;
-
-         const [result] = await pool.query(query, [id]);
-
-         return result.affectedRows > 0;
+         await pool.query("CALL sp_deleteBookGenre(?)", [id]);
+         return true;
       } catch (error) {
          console.error("Error deleting book genre:", error);
          throw error;
@@ -103,15 +152,10 @@ class BookGenresModel extends BaseModel {
 
    async findByBookId(bookId) {
       try {
-         const query = `
-        SELECT bg.bookGenreID, b.title, g.genreName AS genre
-        FROM BookGenres bg
-        INNER JOIN Books b ON bg.bookID = b.bookID
-        INNER JOIN Genres g ON bg.genreID = g.genreID
-        WHERE bg.bookID = ?
-        ORDER BY g.genreName
-      `;
-         const [results] = await pool.query(query, [bookId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_genres WHERE bookID = ? ORDER BY genre",
+            [bookId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book genres by book ID:", error);
@@ -121,15 +165,10 @@ class BookGenresModel extends BaseModel {
 
    async findByGenreId(genreId) {
       try {
-         const query = `
-        SELECT bg.bookGenreID, b.title, g.genreName AS genre
-        FROM BookGenres bg
-        INNER JOIN Books b ON bg.bookID = b.bookID
-        INNER JOIN Genres g ON bg.genreID = g.genreID
-        WHERE bg.genreID = ?
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query, [genreId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_genres WHERE genreID = ? ORDER BY title",
+            [genreId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book genres by genre ID:", error);
@@ -139,21 +178,9 @@ class BookGenresModel extends BaseModel {
 
    async findAll() {
       try {
-         const query = `
-        SELECT
-            bg.bookGenreID,
-            b.title,
-            g.genreName AS genre
-        FROM
-            Books AS b
-        JOIN
-            BookGenres AS bg ON b.bookID = bg.bookID
-        JOIN
-            Genres AS g ON bg.genreID = g.genreID
-        ORDER BY
-            b.title
-      `;
-         const [results] = await pool.query(query);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_genres ORDER BY title"
+         );
          return results;
       } catch (error) {
          console.error("Error finding all book genres:", error);
@@ -183,26 +210,6 @@ class BookGenresModel extends BaseModel {
          return results;
       } catch (error) {
          console.error("Error fetching genres for dropdown:", error);
-         throw error;
-      }
-   }
-
-   async updateForBook(bookId, genreIds) {
-      try {
-         // First, delete all existing relationships for this book
-         const deleteQuery = `DELETE FROM BookGenres WHERE bookID = ?`;
-         await pool.query(deleteQuery, [bookId]);
-
-         // Then, insert the new relationships
-         if (genreIds && genreIds.length > 0) {
-            const insertQuery = `INSERT INTO BookGenres (bookID, genreID) VALUES ?`;
-            const values = genreIds.map((genreId) => [bookId, genreId]);
-            await pool.query(insertQuery, [values]);
-         }
-
-         return { message: "Book genres updated successfully" };
-      } catch (error) {
-         console.error("Error updating book genres:", error);
          throw error;
       }
    }

@@ -18,15 +18,10 @@ class BookAuthorsModel extends BaseModel {
 
    async findByBookId(bookId) {
       try {
-         const query = `
-        SELECT ba.bookAuthorID, b.title, a.fullName AS author
-        FROM BookAuthors ba
-        INNER JOIN Books b ON ba.bookID = b.bookID
-        INNER JOIN Authors a ON ba.authorID = a.authorID
-        WHERE ba.bookID = ?
-        ORDER BY a.fullName
-      `;
-         const [results] = await pool.query(query, [bookId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_authors WHERE bookID = ? ORDER BY author",
+            [bookId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book authors by book ID:", error);
@@ -36,15 +31,10 @@ class BookAuthorsModel extends BaseModel {
 
    async findByAuthorId(authorId) {
       try {
-         const query = `
-        SELECT ba.bookAuthorID, b.title, a.fullName AS author
-        FROM BookAuthors ba
-        INNER JOIN Books b ON ba.bookID = b.bookID
-        INNER JOIN Authors a ON ba.authorID = a.authorID
-        WHERE ba.authorID = ?
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query, [authorId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_authors WHERE authorID = ? ORDER BY title",
+            [authorId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book authors by author ID:", error);
@@ -54,21 +44,9 @@ class BookAuthorsModel extends BaseModel {
 
    async findAll() {
       try {
-         const query = `
-        SELECT
-            ba.bookAuthorID,
-            b.title,
-            a.fullName AS author
-        FROM
-            Books AS b
-        JOIN
-            BookAuthors AS ba ON b.bookID = ba.bookID
-        JOIN
-            Authors AS a ON ba.authorID = a.authorID
-        ORDER BY
-            b.title
-      `;
-         const [results] = await pool.query(query);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_authors ORDER BY title"
+         );
          return results;
       } catch (error) {
          console.error("Error finding all book authors:", error);
@@ -122,11 +100,15 @@ class BookAuthorsModel extends BaseModel {
             );
          }
 
-         const query = `
-            INSERT INTO BookAuthors (authorID, bookID) VALUES (?, ?);
-         `;
+         // Call the specific stored procedure for BookAuthors
+         const [result] = await pool.query(
+            "CALL sp_dynamic_create_book_authors(?)",
+            [JSON.stringify({ authorID, bookID })]
+         );
 
-         const [result] = await pool.query(query, [authorID, bookID]);
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
 
          // Return the created relationship with joined data
          const [newResult] = await pool.query(
@@ -135,7 +117,7 @@ class BookAuthorsModel extends BaseModel {
              INNER JOIN Books b ON ba.bookID = b.bookID
              INNER JOIN Authors a ON ba.authorID = a.authorID
              WHERE ba.bookAuthorID = ?`,
-            [result.insertId]
+            [parsedResult.id]
          );
 
          return newResult[0];
@@ -145,22 +127,89 @@ class BookAuthorsModel extends BaseModel {
       }
    }
 
+   async update(id, data) {
+      try {
+         const { authorID, bookID } = data;
+
+         // Call the specific stored procedure for BookAuthors
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_book_authors(?, ?)",
+            [id, JSON.stringify({ authorID, bookID })]
+         );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+
+         if (!jsonResult) {
+            return null;
+         }
+
+         // Return the updated relationship with joined data
+         const [updatedResult] = await pool.query(
+            `SELECT ba.bookAuthorID, b.title, a.fullName AS author
+             FROM BookAuthors ba
+             INNER JOIN Books b ON ba.bookID = b.bookID
+             INNER JOIN Authors a ON ba.authorID = a.authorID
+             WHERE ba.bookAuthorID = ?`,
+            [id]
+         );
+
+         return updatedResult[0];
+      } catch (error) {
+         console.error("Error updating book author:", error);
+         throw error;
+      }
+   }
+
    async updateForBook(bookId, authorIds) {
       try {
-         // First, delete all existing relationships for this book
-         const deleteQuery = `DELETE FROM BookAuthors WHERE bookID = ?`;
-         await pool.query(deleteQuery, [bookId]);
+         // Get current author relationships for this book
+         const [currentAuthors] = await pool.query(
+            "SELECT authorID FROM BookAuthors WHERE bookID = ?",
+            [bookId]
+         );
+         const currentAuthorIds = currentAuthors.map((a) => a.authorID);
 
-         // Then, insert the new relationships
-         if (authorIds && authorIds.length > 0) {
-            const insertQuery = `INSERT INTO BookAuthors (bookID, authorID) VALUES ?`;
-            const values = authorIds.map((authorId) => [bookId, authorId]);
-            await pool.query(insertQuery, [values]);
+         // Find authors to add (in new list but not in current)
+         const authorsToAdd = authorIds.filter(
+            (id) => !currentAuthorIds.includes(id)
+         );
+
+         // Find authors to remove (in current but not in new list)
+         const authorsToRemove = currentAuthorIds.filter(
+            (id) => !authorIds.includes(id)
+         );
+
+         // Remove authors that are no longer associated
+         if (authorsToRemove.length > 0) {
+            await pool.query(
+               "DELETE FROM BookAuthors WHERE bookID = ? AND authorID IN (?)",
+               [bookId, authorsToRemove]
+            );
+         }
+
+         // Add new author relationships
+         if (authorsToAdd.length > 0) {
+            const values = authorsToAdd.map((authorId) => [bookId, authorId]);
+            await pool.query(
+               "INSERT INTO BookAuthors (bookID, authorID) VALUES ?",
+               [values]
+            );
          }
 
          return { message: "Book authors updated successfully" };
       } catch (error) {
          console.error("Error updating book authors:", error);
+         throw error;
+      }
+   }
+
+   async deleteById(id) {
+      try {
+         await pool.query("CALL sp_deleteBookAuthor(?)", [id]);
+         return true;
+      } catch (error) {
+         console.error("Error deleting book author:", error);
          throw error;
       }
    }

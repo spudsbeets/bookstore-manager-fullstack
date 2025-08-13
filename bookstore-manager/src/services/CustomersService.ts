@@ -54,7 +54,7 @@ class CustomersService {
       return http.put(`/customers/${id}`, data);
    }
 
-   remove(id: number): Promise<AxiosResponse<void>> {
+   remove(id: number): Promise<AxiosResponse<{ message: string }>> {
       return http.delete(`/customers/${id}`);
    }
 

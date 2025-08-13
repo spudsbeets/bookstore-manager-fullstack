@@ -34,6 +34,7 @@ import {
    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "sonner";
 import CustomersService from "@/services/CustomersService";
 
 interface Customer {
@@ -92,15 +93,29 @@ export function CustomersList({
    const handleDelete = async (customer: Customer) => {
       setIsDeleting(true);
       try {
-         await CustomersService.remove(customer.customerID);
+         const result = await CustomersService.remove(customer.customerID);
          setCustomers(
             customers.filter((c) => c.customerID !== customer.customerID)
          );
          if (onDelete) {
             onDelete(customer);
          }
-      } catch (error) {
+
+         // Show success message
+         const message = result.data.message || "Customer deleted successfully";
+         toast.success(message);
+      } catch (error: any) {
          console.error("Error deleting customer:", error);
+         // Show error message
+         const errorMessage =
+            error.response?.data?.error || "Failed to delete customer";
+         const errorDetails = error.response?.data?.details || "";
+         toast.error(errorMessage, {
+            description: errorDetails,
+            duration: 30000,
+            dismissible: true,
+         });
+         console.error("Error details:", errorDetails);
       } finally {
          setIsDeleting(false);
          setCustomerToDelete(null);

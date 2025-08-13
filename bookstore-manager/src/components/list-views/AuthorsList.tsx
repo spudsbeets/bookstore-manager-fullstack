@@ -174,19 +174,15 @@ export function AuthorsList({
                      ) : (
                         filteredAuthors.map((author) => (
                            <TableRow key={author.authorID}>
-                              <TableCell className="font-medium">
+                              <TableCell className="font-medium align-middle">
                                  {author.authorID}
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="align-middle">
                                  <div className="font-medium">
                                     {author.fullName}
                                  </div>
-                                 <div className="text-sm text-muted-foreground">
-                                    {author.firstName} {author.middleName}{" "}
-                                    {author.lastName}
-                                 </div>
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right align-middle">
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                        <Button variant="ghost" size="sm">

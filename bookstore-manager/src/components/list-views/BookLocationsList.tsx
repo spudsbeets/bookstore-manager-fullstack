@@ -45,6 +45,7 @@ interface BookLocationsListProps {
    onDelete?: (bookLocation: BookLocation) => void;
    onAdd?: () => void;
    onCreateLocation?: () => void; // New prop for creating locations
+   onRefreshBook?: () => void; // New prop for refreshing parent book data
 }
 
 export function BookLocationsList({
@@ -54,6 +55,7 @@ export function BookLocationsList({
    onDelete,
    onAdd,
    onCreateLocation,
+   onRefreshBook,
 }: BookLocationsListProps) {
    const [bookLocations, setBookLocations] = useState<BookLocation[]>([]);
    const [isLoading, setIsLoading] = useState(true);
@@ -77,7 +79,8 @@ export function BookLocationsList({
             toast.error("Failed to load book locations", {
                description:
                   "There was an error loading the book locations. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -111,12 +114,17 @@ export function BookLocationsList({
          if (onDelete) {
             onDelete(bookLocation);
          }
+         // Refresh parent book data to show updated inventory quantity
+         if (onRefreshBook) {
+            onRefreshBook();
+         }
       } catch (error) {
          console.error("Error deleting book location:", error);
          toast.error("Failed to delete book location relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);

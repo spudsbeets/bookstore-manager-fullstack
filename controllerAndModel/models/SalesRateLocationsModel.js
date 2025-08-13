@@ -20,7 +20,8 @@ class SalesRateLocationsModel extends BaseModel {
    async findAllWithLocation() {
       try {
          const [rows] = await pool.query(`
-                SELECT salesRateID, CONCAT(county, ", ", state) as location, taxRate 
+                SELECT salesRateID, CONCAT(county, ", ", state) as location, 
+                       taxRate * 100 as taxRate 
                 FROM SalesRateLocations 
                 ORDER BY state, county
             `);
@@ -69,25 +70,31 @@ class SalesRateLocationsModel extends BaseModel {
             );
          }
 
+         // Convert percentage to decimal for storage
+         const taxRateDecimal = taxRate / 100;
+
          const insertData = {
             county: county.trim(),
             state: state.trim(),
-            taxRate: taxRate,
+            taxRate: taxRateDecimal,
             ...otherData,
          };
 
-         const columns = Object.keys(insertData).join(", ");
-         const placeholders = Object.keys(insertData)
-            .map(() => "?")
-            .join(", ");
-         const values = Object.values(insertData);
-
+         // Call the specific stored procedure for SalesRateLocations
          const [result] = await pool.query(
-            `INSERT INTO ${this.tableName} (${columns}) VALUES (${placeholders})`,
-            values
+            "CALL sp_dynamic_create_sales_rate_locations(?)",
+            [JSON.stringify(insertData)]
          );
 
-         return { salesRateID: result.insertId, ...insertData };
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
+
+         // Convert decimal back to percentage for frontend
+         parsedResult.taxRate = parsedResult.taxRate * 100;
+
+         // Return the complete data from the stored procedure
+         return parsedResult;
       } catch (error) {
          console.error(`Error creating ${this.tableName}:`, error);
          throw error;
@@ -107,26 +114,38 @@ class SalesRateLocationsModel extends BaseModel {
             updateData.state = state.trim();
          }
          if (taxRate !== undefined) {
-            updateData.taxRate = taxRate;
+            // Convert percentage to decimal for storage
+            updateData.taxRate = taxRate / 100;
          }
 
-         const setClause = Object.keys(updateData)
-            .map((key) => `${key} = ?`)
-            .join(", ");
-         const values = [...Object.values(updateData), id];
-
+         // Call the specific stored procedure for SalesRateLocations
          const [result] = await pool.query(
-            `UPDATE ${this.tableName} SET ${setClause} WHERE ${this.idColumn} = ?`,
-            values
+            "CALL sp_dynamic_update_sales_rate_locations(?, ?)",
+            [id, JSON.stringify(updateData)]
          );
 
-         if (result.affectedRows === 0) {
-            return null;
-         }
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
 
-         return { salesRateID: id, ...updateData };
+         if (jsonResult) {
+            const parsedResult = JSON.parse(jsonResult);
+            // Convert decimal back to percentage for frontend
+            parsedResult.taxRate = parsedResult.taxRate * 100;
+            return parsedResult;
+         }
+         return null;
       } catch (error) {
          console.error(`Error updating ${this.tableName}:`, error);
+         throw error;
+      }
+   }
+
+   async deleteById(id) {
+      try {
+         await pool.query("CALL sp_deleteSalesRateLocation(?)", [id]);
+         return true;
+      } catch (error) {
+         console.error("Error deleting sales rate location:", error);
          throw error;
       }
    }

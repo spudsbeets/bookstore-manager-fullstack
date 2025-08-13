@@ -9,6 +9,7 @@
  * @ai_tool_usage This model was generated using Cursor, an AI code editor, based on the database schema and a template. The generated code was then refined to add custom logic.
  */
 import BaseModel from "./BaseModel.js";
+import pool from "../database/db-connector.js";
 
 class GenresModel extends BaseModel {
    constructor() {
@@ -49,8 +50,16 @@ class GenresModel extends BaseModel {
             );
          }
 
-         // Call parent create method
-         return await super.create(data);
+         // Call the specific stored procedure for Genres
+         const [result] = await pool.query("CALL sp_dynamic_create_genres(?)", [
+            JSON.stringify(data),
+         ]);
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
+
+         return { id: parsedResult.id, ...data };
       } catch (error) {
          console.error("Error creating genre:", error);
          throw error;
@@ -70,10 +79,32 @@ class GenresModel extends BaseModel {
             );
          }
 
-         // Call parent update method
-         return await super.update(id, data);
+         // Call the specific stored procedure for Genres
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_genres(?, ?)",
+            [id, JSON.stringify(data)]
+         );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+
+         if (jsonResult) {
+            const parsedResult = JSON.parse(jsonResult);
+            return { id, ...data };
+         }
+         return null;
       } catch (error) {
          console.error("Error updating genre:", error);
+         throw error;
+      }
+   }
+
+   async deleteById(id) {
+      try {
+         await pool.query("CALL sp_deleteGenre(?)", [id]);
+         return true;
+      } catch (error) {
+         console.error("Error deleting genre:", error);
          throw error;
       }
    }

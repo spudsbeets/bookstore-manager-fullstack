@@ -4,7 +4,7 @@
  *
  * @degree_of_originality The code in this file is a direct adaptation of the source code provided in the course materials for establishing a database connection. Changes were minimal and primarily involved configuring credentials.
  *
- * @source_url The CS 290 Canvas Exploration module on setting up a database connection.
+ * @source_url The CS 340 Canvas Exploration module on setting up a database connection.
  *
  * @ai_tool_usage No AI tools were used for the creation of this specific file.
  */

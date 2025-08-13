@@ -32,11 +32,15 @@ class BookLocationsModel extends BaseModel {
             );
          }
 
-         // Create the relationship
+         // Call the specific stored procedure for BookLocations
          const [result] = await pool.query(
-            "INSERT INTO BookLocations (bookID, slocID, quantity) VALUES (?, ?, ?)",
-            [bookID, slocID, quantity]
+            "CALL sp_dynamic_create_book_locations(?)",
+            [JSON.stringify({ bookID, slocID, quantity })]
          );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
 
          // Return the created relationship with joined data
          const [newResult] = await pool.query(
@@ -45,7 +49,7 @@ class BookLocationsModel extends BaseModel {
              INNER JOIN Books b ON bl.bookID = b.bookID
              INNER JOIN SLOCS s ON bl.slocID = s.slocID
              WHERE bl.bookLocationID = ?`,
-            [result.insertId]
+            [parsedResult.id]
          );
 
          return newResult[0];
@@ -71,11 +75,18 @@ class BookLocationsModel extends BaseModel {
             );
          }
 
-         // Update the relationship
-         await pool.query(
-            "UPDATE BookLocations SET bookID = ?, slocID = ?, quantity = ? WHERE bookLocationID = ?",
-            [bookID, slocID, quantity, id]
+         // Call the specific stored procedure for BookLocations
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_book_locations(?, ?)",
+            [id, JSON.stringify({ bookID, slocID, quantity })]
          );
+
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+
+         if (!jsonResult) {
+            return null;
+         }
 
          // Return the updated relationship with joined data
          const [updatedResult] = await pool.query(
@@ -96,12 +107,8 @@ class BookLocationsModel extends BaseModel {
 
    async deleteById(id) {
       try {
-         const [result] = await pool.query(
-            "DELETE FROM BookLocations WHERE bookLocationID = ?",
-            [id]
-         );
-
-         return result.affectedRows > 0;
+         await pool.query("CALL sp_deleteBookLocation(?)", [id]);
+         return true;
       } catch (error) {
          console.error("Error deleting book location:", error);
          throw error;
@@ -110,15 +117,10 @@ class BookLocationsModel extends BaseModel {
 
    async findByBookId(bookId) {
       try {
-         const query = `
-        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
-        FROM BookLocations bl
-        INNER JOIN Books b ON bl.bookID = b.bookID
-        INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        WHERE bl.bookID = ?
-        ORDER BY s.slocName
-      `;
-         const [results] = await pool.query(query, [bookId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_locations WHERE bookID = ? ORDER BY slocName",
+            [bookId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book locations by book ID:", error);
@@ -128,15 +130,10 @@ class BookLocationsModel extends BaseModel {
 
    async findByLocationId(locationId) {
       try {
-         const query = `
-        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
-        FROM BookLocations bl
-        INNER JOIN Books b ON bl.bookID = b.bookID
-        INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        WHERE bl.slocID = ?
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query, [locationId]);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_locations WHERE slocID = ? ORDER BY title",
+            [locationId]
+         );
          return results;
       } catch (error) {
          console.error("Error finding book locations by location ID:", error);
@@ -146,14 +143,9 @@ class BookLocationsModel extends BaseModel {
 
    async findAll() {
       try {
-         const query = `
-        SELECT bl.bookLocationID, s.slocName, b.title, bl.quantity
-        FROM BookLocations bl
-        INNER JOIN Books b ON bl.bookID = b.bookID
-        INNER JOIN SLOCS s ON bl.slocID = s.slocID
-        ORDER BY b.title
-      `;
-         const [results] = await pool.query(query);
+         const [results] = await pool.query(
+            "SELECT * FROM v_book_locations ORDER BY title"
+         );
          return results;
       } catch (error) {
          console.error("Error finding all book locations:", error);

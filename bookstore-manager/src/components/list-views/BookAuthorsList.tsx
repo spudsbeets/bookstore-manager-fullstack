@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
    Table,
    TableBody,
@@ -83,7 +84,8 @@ export function BookAuthorsList({
             toast.error("Failed to load book authors", {
                description:
                   "There was an error loading the book authors. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -120,7 +122,8 @@ export function BookAuthorsList({
          toast.error("Failed to delete book author relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);
@@ -194,12 +197,17 @@ export function BookAuthorsList({
             <CardContent>
                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
+                     <Label htmlFor="book-authors-search" className="sr-only">
+                        Search book authors
+                     </Label>
                      <Input
+                        id="book-authors-search"
+                        name="book-authors-search"
                         placeholder="Search book authors..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="max-w-sm"
-                     />
+                      />
                   </div>
 
                   <Table>

@@ -38,13 +38,14 @@ import { toast } from "sonner";
 
 // Services
 import BookGenresService from "@/services/BookGenresService";
+import BooksService from "@/services/BooksService";
 
 // -----------------------------
 // ZOD SCHEMA & TYPES
 // -----------------------------
 
 const bookGenreSchema = z.object({
-   title: z.string().min(1, "Book title is required"),
+   bookID: z.string().min(1, "Book selection is required"),
    genre: z.string().min(1, "Genre is required"),
 });
 
@@ -75,45 +76,25 @@ export function BookGenresForm({
 
    const form = useForm<BookGenreFormData>({
       resolver: zodResolver(bookGenreSchema),
-      defaultValues: initialData
-         ? {
-              title: initialData.title || "",
-              genre: initialData.genre || "",
-           }
-         : {
-              title: "",
-              genre: "",
-           },
+      defaultValues: {
+         bookID: "",
+         genre: "",
+      },
    });
-
-   // Update form values when initialData changes
-   useEffect(() => {
-      if (initialData) {
-         form.setValue("title", initialData.title || "");
-         form.setValue("genre", initialData.genre || "");
-      }
-   }, [initialData, form]);
-
-   // Update form values when initialData changes (for edit mode)
-   useEffect(() => {
-      if (initialData && (mode === "edit" || mode === "view")) {
-         form.setValue("title", initialData.title || "");
-         form.setValue("genre", initialData.genre || "");
-      }
-   }, [initialData, mode, form]);
 
    useEffect(() => {
       const fetchData = async () => {
          try {
-            // Fetch books and genres for dropdowns
+            // Fetch books and genres in parallel
             const [booksResponse, genresResult] = await Promise.all([
-               BookGenresService.getBooksForDropdown(),
+               BooksService.getAll(),
                BookGenresService.getGenresForDropdown(),
             ]);
 
             setBooksResult(booksResponse);
+            setGenres(genresResult.data);
 
-            // Set current book if bookID is provided
+            // Set current book if bookID is provided and greater than 0
             if (bookID > 0) {
                const currentBook = booksResponse.data.find(
                   (book) => book.bookID === bookID
@@ -122,19 +103,28 @@ export function BookGenresForm({
 
                // For edit mode, use the initialData values
                if (initialData) {
-                  form.setValue("title", initialData.title || "");
+                  form.setValue("bookID", bookID.toString());
                   form.setValue("genre", initialData.genre || "");
                } else if (currentBook) {
                   // For create mode, use the current book
-                  form.setValue("title", currentBook.title);
+                  form.setValue("bookID", bookID.toString());
+               }
+            } else {
+               // If bookID is 0, allow book selection
+               if (initialData?.bookID) {
+                  form.setValue("bookID", initialData.bookID.toString());
                }
             }
 
-            setGenres(genresResult.data);
+            if (initialData?.genre) {
+               form.setValue("genre", initialData.genre);
+            }
          } catch (error) {
             console.error("Error fetching data:", error);
             toast.error("Failed to load form data", {
                description: "Please refresh the page and try again.",
+               duration: 30000,
+               dismissible: true,
             });
          } finally {
             setIsLoading(false);
@@ -153,23 +143,29 @@ export function BookGenresForm({
          );
          const genreName = selectedGenre?.genreName || data.genre;
 
+         // Find the selected book for display
+         const selectedBook = booksResult.data.find(
+            (book: any) => book.bookID.toString() === data.bookID
+         );
+         const bookTitle = selectedBook?.title || "Unknown Book";
+
          if (mode === "create") {
             // Create new book-genre relationship
             await BookGenresService.create({
-               bookID: bookID,
-               genreID: parseInt(data.genre), // Convert string genreID to number
+               bookID: parseInt(data.bookID),
+               genreID: parseInt(data.genre),
             });
             toast.success("Book genre relationship created successfully!", {
-               description: `${genreName} has been added to ${data.title}.`,
+               description: `${genreName} has been added to ${bookTitle}.`,
             });
          } else if (mode === "edit" && initialData?.bookGenreID) {
             // Update existing book-genre relationship
             await BookGenresService.update(initialData.bookGenreID, {
-               bookID: bookID,
-               genreID: parseInt(data.genre), // Convert string genreID to number
+               bookID: parseInt(data.bookID),
+               genreID: parseInt(data.genre),
             });
             toast.success("Book genre relationship updated successfully!", {
-               description: `${genreName} has been updated for ${data.title}.`,
+               description: `${genreName} has been updated for ${bookTitle}.`,
             });
          }
 
@@ -186,14 +182,16 @@ export function BookGenresForm({
                   description:
                      errorData.suggestion ||
                      "Please choose a different genre or book.",
-                  duration: Infinity,
+                  duration: 30000,
+                  dismissible: true,
                }
             );
          } else {
             toast.error("Failed to save book genre relationship", {
                description:
                   "There was an error saving the relationship. Please try again.",
-               duration: Infinity,
+               duration: 30000,
+               dismissible: true,
             });
          }
       } finally {
@@ -216,7 +214,8 @@ export function BookGenresForm({
          toast.error("Failed to delete book genre relationship", {
             description:
                "There was an error deleting the relationship. Please try again.",
-            duration: Infinity,
+            duration: 30000,
+            dismissible: true,
          });
       } finally {
          setIsDeleting(false);
@@ -282,7 +281,7 @@ export function BookGenresForm({
                   {mode === "view" && "View Book Genre"}
                </CardTitle>
                <CardDescription>
-                  {mode === "create" && "Add a genre to this book"}
+                  {mode === "create" && "Add a genre to a book"}
                   {mode === "edit" && "Modify the genre for this book"}
                   {mode === "view" && "View book genre details"}
                </CardDescription>
@@ -298,8 +297,8 @@ export function BookGenresForm({
                         booksResult?.data && (
                            <FormField
                               control={form.control}
-                              name="title"
-                              render={() => (
+                              name="bookID"
+                              render={({ field }) => (
                                  <FormItem>
                                     <FormLabel>Book</FormLabel>
                                     <FormControl>
@@ -312,27 +311,8 @@ export function BookGenresForm({
                                                 })
                                              ) || []
                                           }
-                                          value={
-                                             initialData?.title
-                                                ? booksResult?.data
-                                                     ?.find(
-                                                        (book: any) =>
-                                                           book.title ===
-                                                           initialData.title
-                                                     )
-                                                     ?.bookID?.toString() ||
-                                                  bookID?.toString() ||
-                                                  ""
-                                                : bookID?.toString() || ""
-                                          }
-                                          onValueChange={(value) => {
-                                             // Update the bookID when a different book is selected
-                                             const newBookID = parseInt(value);
-                                             if (newBookID !== bookID) {
-                                                // This would need to be handled by the parent component
-                                                // For now, we'll keep the current bookID
-                                             }
-                                          }}
+                                          value={field.value}
+                                          onValueChange={field.onChange}
                                           placeholder="Select a book"
                                           searchPlaceholder="Search books..."
                                           emptyMessage="No books found."
@@ -375,18 +355,7 @@ export function BookGenresForm({
                                              value: genre.genreID.toString(),
                                              label: genre.genreName,
                                           }))}
-                                          value={
-                                             field.value ||
-                                             (initialData?.genre
-                                                ? genres
-                                                     .find(
-                                                        (genre) =>
-                                                           genre.genreName ===
-                                                           initialData.genre
-                                                     )
-                                                     ?.genreID?.toString() || ""
-                                                : "")
-                                          }
+                                          value={field.value}
                                           onValueChange={field.onChange}
                                           placeholder="Select a genre"
                                           searchPlaceholder="Search genres..."

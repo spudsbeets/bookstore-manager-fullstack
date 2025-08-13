@@ -44,11 +44,15 @@ class OrderItemsModel extends BaseModel {
          const price = individualPrice;
          const subtotal = quantity * price;
 
-         // Create the order item
+         // Call the specific stored procedure for OrderItems
          const [result] = await pool.query(
-            "INSERT INTO OrderItems (orderID, bookID, quantity, individualPrice, subtotal) VALUES (?, ?, ?, ?, ?)",
-            [orderID, bookID, quantity, price, subtotal]
+            "CALL sp_dynamic_create_order_items(?)",
+            [JSON.stringify({ orderID, bookID, quantity, individualPrice: price, subtotal })]
          );
+         
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         const parsedResult = JSON.parse(jsonResult);
 
          // Return the created order item with joined data
          const [newResult] = await pool.query(
@@ -59,7 +63,7 @@ class OrderItemsModel extends BaseModel {
              INNER JOIN Orders o ON oi.orderID = o.orderID
              INNER JOIN Customers c ON o.customerID = c.customerID
              WHERE oi.orderItemID = ?`,
-            [result.insertId]
+            [parsedResult.id]
          );
 
          return newResult[0];
@@ -129,18 +133,18 @@ class OrderItemsModel extends BaseModel {
          // Calculate new subtotal
          const subtotal = newQuantity * newIndividualPrice;
 
-         // Update the order item
-         await pool.query(
-            "UPDATE OrderItems SET orderID = ?, bookID = ?, quantity = ?, individualPrice = ?, subtotal = ? WHERE orderItemID = ?",
-            [
-               newOrderID,
-               newBookID,
-               newQuantity,
-               newIndividualPrice,
-               subtotal,
-               id,
-            ]
+         // Call the specific stored procedure for OrderItems
+         const [result] = await pool.query(
+            "CALL sp_dynamic_update_order_items(?, ?)",
+            [id, JSON.stringify({ orderID: newOrderID, bookID: newBookID, quantity: newQuantity, individualPrice: newIndividualPrice, subtotal })]
          );
+         
+         // Extract the result from the stored procedure
+         const jsonResult = result[0][0].result;
+         
+         if (!jsonResult) {
+            return null;
+         }
 
          // Return the updated order item with joined data
          const [updatedResult] = await pool.query(
@@ -163,12 +167,8 @@ class OrderItemsModel extends BaseModel {
 
    async deleteById(id) {
       try {
-         const [result] = await pool.query(
-            "DELETE FROM OrderItems WHERE orderItemID = ?",
-            [id]
-         );
-
-         return result.affectedRows > 0;
+         await pool.query("CALL sp_deleteOrderItem(?)", [id]);
+         return true;
       } catch (error) {
          console.error("Error deleting order item:", error);
          throw error;
