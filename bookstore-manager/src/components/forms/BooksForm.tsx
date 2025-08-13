@@ -34,6 +34,7 @@ import {
    FormItem,
    FormLabel,
    FormMessage,
+   useFormField,
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -701,28 +702,33 @@ export function BooksForm({
                      <FormField
                         control={form.control}
                         name="publisher"
-                        render={({ field }) => (
-                           <FormItem>
-                              <FormLabel>Publisher</FormLabel>
-                              <FormControl>
-                                 <SearchableSelect
-                                    options={publishers.map((publisher) => ({
-                                       value: publisher.publisherID.toString(),
-                                       label: publisher.publisherName,
-                                    }))}
-                                    value={field.value?.toString()}
-                                    onValueChange={(value) =>
-                                       field.onChange(value)
-                                    }
-                                    placeholder="Select a publisher"
-                                    searchPlaceholder="Search publishers..."
-                                    emptyMessage="No publishers found."
-                                    disabled={isViewMode}
-                                 />
-                              </FormControl>
-                              <FormMessage />
-                           </FormItem>
-                        )}
+                        render={({ field }) => {
+                           const { id } = useFormField();
+                           return (
+                              <FormItem>
+                                 <FormLabel>Publisher</FormLabel>
+                                 <FormControl>
+                                    <SearchableSelect
+                                       options={publishers.map((publisher) => ({
+                                          value: publisher.publisherID.toString(),
+                                          label: publisher.publisherName,
+                                       }))}
+                                       value={field.value?.toString()}
+                                       onValueChange={(value) =>
+                                          field.onChange(value)
+                                       }
+                                       placeholder="Select a publisher"
+                                       searchPlaceholder="Search publishers..."
+                                       emptyMessage="No publishers found."
+                                       disabled={isViewMode}
+                                       id={id}
+                                       name="publisher"
+                                    />
+                                 </FormControl>
+                                 <FormMessage />
+                              </FormItem>
+                           );
+                        }}
                      />
 
                      {/* Price and Inventory */}

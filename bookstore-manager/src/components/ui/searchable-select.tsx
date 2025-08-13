@@ -28,6 +28,8 @@ interface SearchableSelectProps {
    emptyMessage?: string;
    disabled?: boolean;
    className?: string;
+   id?: string;
+   name?: string;
 }
 
 export function SearchableSelect({
@@ -39,6 +41,8 @@ export function SearchableSelect({
    emptyMessage = "No options found.",
    disabled = false,
    className,
+   id,
+   name,
 }: SearchableSelectProps) {
    const [open, setOpen] = React.useState(false);
 
@@ -53,6 +57,8 @@ export function SearchableSelect({
                aria-expanded={open}
                className={cn("w-full justify-between", className)}
                disabled={disabled}
+               id={id}
+               name={name}
             >
                {selectedOption ? selectedOption.label : placeholder}
                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
