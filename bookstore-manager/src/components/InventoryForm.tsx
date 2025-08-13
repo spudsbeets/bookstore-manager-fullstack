@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
    Form,
    FormControl,
@@ -349,9 +350,8 @@ export function InventoryForm({
                               <FormItem>
                                  <FormLabel>Book Title</FormLabel>
                                  <FormControl>
-                                    <input
+                                    <Input
                                        {...field}
-                                       className="w-full p-2 border rounded-md"
                                        placeholder="Enter book title"
                                     />
                                  </FormControl>
@@ -367,10 +367,9 @@ export function InventoryForm({
                               <FormItem>
                                  <FormLabel>Price</FormLabel>
                                  <FormControl>
-                                    <input
+                                    <Input
                                        type="text"
                                        inputMode="decimal"
-                                       className="w-full p-2 border rounded-md"
                                        placeholder="0.00"
                                        value={field.value || ""}
                                        onChange={(e) => {
@@ -403,10 +402,9 @@ export function InventoryForm({
                               <FormItem>
                                  <FormLabel>Total Inventory Quantity</FormLabel>
                                  <FormControl>
-                                    <input
+                                    <Input
                                        type="text"
                                        inputMode="numeric"
-                                       className="w-full p-2 border rounded-md"
                                        placeholder="0"
                                        value={field.value || ""}
                                        onChange={(e) => {
@@ -437,11 +435,7 @@ export function InventoryForm({
                               <FormItem>
                                  <FormLabel>Publication Date</FormLabel>
                                  <FormControl>
-                                    <input
-                                       {...field}
-                                       type="date"
-                                       className="w-full p-2 border rounded-md"
-                                    />
+                                    <Input {...field} type="date" />
                                  </FormControl>
                                  <FormMessage />
                               </FormItem>
@@ -457,9 +451,8 @@ export function InventoryForm({
                               <FormItem>
                                  <FormLabel>ISBN-10</FormLabel>
                                  <FormControl>
-                                    <input
+                                    <Input
                                        {...field}
-                                       className="w-full p-2 border rounded-md"
                                        placeholder="978-0-000-00000-0"
                                        maxLength={13}
                                     />
@@ -476,10 +469,9 @@ export function InventoryForm({
                               <FormItem>
                                  <FormLabel>ISBN-13</FormLabel>
                                  <FormControl>
-                                    <input
+                                    <Input
                                        {...field}
-                                       className="w-full p-2 border rounded-md"
-                                       placeholder="978-0-000-00000-0-0"
+                                       placeholder="978-0-000-00000-0"
                                        maxLength={17}
                                     />
                                  </FormControl>
@@ -585,10 +577,9 @@ export function InventoryForm({
                                  <FormItem>
                                     <FormLabel>Quantity at Location</FormLabel>
                                     <FormControl>
-                                       <input
+                                       <Input
                                           type="text"
                                           inputMode="numeric"
-                                          className="w-full p-2 border rounded-md"
                                           placeholder="0"
                                           value={field.value || ""}
                                           onChange={(e) => {
